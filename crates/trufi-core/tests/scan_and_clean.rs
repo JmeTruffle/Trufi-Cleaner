@@ -178,11 +178,11 @@ fn clean_only_selected_paths() {
 fn keep_newest_versions() {
     let dir = tempfile::tempdir().unwrap();
     let home = dir.path().to_path_buf();
-    for (i, v) in ["v1", "v2", "v3"].iter().enumerate() {
-        let d = home.join("Versions").join(v);
-        write(&d.join("app.bin"), 100, 0);
-        let t = SystemTime::now() - Duration::from_secs((10 - i as u64) * 3600);
-        std::fs::File::open(&d).unwrap().set_modified(t).unwrap();
+    // Created in order, so v3 has the newest folder timestamp. (Setting a
+    // directory's mtime directly needs extra flags on Windows.)
+    for v in ["v1", "v2", "v3"] {
+        write(&home.join("Versions").join(v).join("app.bin"), 100, 0);
+        std::thread::sleep(Duration::from_millis(30));
     }
     let pack = r#"
         [pack]

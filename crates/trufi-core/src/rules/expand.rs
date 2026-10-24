@@ -116,7 +116,10 @@ mod tests {
 
     #[test]
     fn expands_variables_case_insensitively() {
-        let v = vars(Path::new("/h"));
+        let v = HashMap::from([
+            ("HOME".to_string(), PathBuf::from("/h")),
+            ("LOCALAPPDATA".to_string(), PathBuf::from("/h/Local")),
+        ]);
         assert_eq!(expand_template("%localappdata%/x", &v).unwrap(), "/h/Local/x");
         assert_eq!(expand_template("~/a", &v).unwrap(), "/h/a");
         assert!(expand_template("%NOPE%/x", &v).is_none());

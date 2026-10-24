@@ -78,33 +78,42 @@ impl SafetyGuard {
 mod tests {
     use super::*;
 
+    /// Unix-style test paths, made absolute on Windows with a drive letter.
+    fn p(s: &str) -> PathBuf {
+        if cfg!(windows) && s.starts_with('/') {
+            PathBuf::from(format!("C:{s}"))
+        } else {
+            PathBuf::from(s)
+        }
+    }
+
     fn guard() -> SafetyGuard {
         SafetyGuard::new(
-            vec!["/win/System32".into()],
-            vec!["/home/u".into(), "/win".into(), "/home/u/AppData/Local".into()],
+            vec![p("/win/System32")],
+            vec![p("/home/u"), p("/win"), p("/home/u/AppData/Local")],
         )
     }
 
     #[test]
     fn roots() {
         let g = guard();
-        assert!(g.allows_root(Path::new("/home/u/AppData/Local/Temp")));
-        assert!(g.allows_root(Path::new("/win/Temp")));
-        assert!(!g.allows_root(Path::new("/home/u")));
-        assert!(!g.allows_root(Path::new("/home")));
-        assert!(!g.allows_root(Path::new("/home/u/AppData")));
-        assert!(!g.allows_root(Path::new("/win")));
-        assert!(!g.allows_root(Path::new("/win/System32/drivers")));
-        assert!(!g.allows_root(Path::new("/")));
+        assert!(g.allows_root(&p("/home/u/AppData/Local/Temp")));
+        assert!(g.allows_root(&p("/win/Temp")));
+        assert!(!g.allows_root(&p("/home/u")));
+        assert!(!g.allows_root(&p("/home")));
+        assert!(!g.allows_root(&p("/home/u/AppData")));
+        assert!(!g.allows_root(&p("/win")));
+        assert!(!g.allows_root(&p("/win/System32/drivers")));
+        assert!(!g.allows_root(&p("/")));
         assert!(!g.allows_root(Path::new("relative/path")));
     }
 
     #[test]
     fn entries() {
         let g = guard();
-        let root = Path::new("/home/u/AppData/Local/Temp");
-        assert!(g.allows_entry(Path::new("/home/u/AppData/Local/Temp/a.tmp"), root));
-        assert!(!g.allows_entry(Path::new("/home/u/AppData/Local/Temporary/a"), root));
-        assert!(!g.allows_entry(Path::new("/home/u/AppData/Local/Temp/../x"), root));
+        let root = &p("/home/u/AppData/Local/Temp");
+        assert!(g.allows_entry(&p("/home/u/AppData/Local/Temp/a.tmp"), root));
+        assert!(!g.allows_entry(&p("/home/u/AppData/Local/Temporary/a"), root));
+        assert!(!g.allows_entry(&p("/home/u/AppData/Local/Temp/../x"), root));
     }
 }
