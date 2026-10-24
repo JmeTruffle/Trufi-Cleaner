@@ -21,7 +21,9 @@
         "center": true,
         "decorations": false,
         "transparent": false,
-        "shadow": true
+        "shadow": true,
+        "theme": "Dark",
+        "backgroundColor": "#0f1115"
       }
     ],
     "security": {
@@ -30,11 +32,43 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "windows": {
-      "webviewInstallMode": { "type": "downloadBootstrapper" },
-      "nsis": { "languages": ["Russian", "English"], "displayLanguageSelector": false }
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "Russian"
+        ],
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "startMenuFolder": "Trufi Cleaner"
+      }
+    },
+    "createUpdaterArtifacts": true,
+    "publisher": "Trufi",
+    "shortDescription": "Очистка и оптимизация ПК"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM3NTBBNEI1QkJEMThEMjEKUldRaGpkRzd0YVJReHdaOGRKL2hlZEVBbTZSMThJV3E2SG1ML05HZ2ZKZ0pEc05HRFB3YXpHcE8K",
+      "endpoints": [
+        "https://github.com/JmeTruffle/Trufi-Cleaner/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

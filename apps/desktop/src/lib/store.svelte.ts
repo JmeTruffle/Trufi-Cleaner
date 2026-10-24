@@ -2,12 +2,13 @@
 // their history and a scan keeps running while the user switches pages.
 
 import { api, onScanEvent } from "./api";
+import { checkForUpdate, type AvailableUpdate } from "./updater";
 import type { CleanReport, CleanRequest, HealthReport, RuleFinding, ScanArgs, ScanSummary, SystemInfo, SystemSnapshot } from "./types";
 
 export type Page = "overview" | "cleaner" | "optimize" | "settings";
-export type Theme = "system" | "light" | "dark";
 
 const HISTORY = 60;
+const UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
 const POLL_MS = 1500;
 
 function load<T>(key: string, fallback: T): T {
@@ -30,7 +31,6 @@ function save(key: string, value: unknown) {
 class AppStore {
   page = $state<Page>("overview");
   optimizeTab = $state<"startup" | "apps" | "processes">("startup");
-  theme = $state<Theme>(load("theme", "system"));
   info = $state<SystemInfo | null>(null);
 
   snapshot = $state<SystemSnapshot | null>(null);
@@ -49,15 +49,21 @@ class AppStore {
   lastClean = $state<CleanReport | null>(null);
   scanOptions = $state(load("scanOptions", { leftovers: true, largeFiles: true }));
 
+  update = $state<AvailableUpdate | null>(null);
+  updateState = $state<"idle" | "checking" | "none" | "downloading" | "error">("idle");
+  updateProgress = $state<number | null>(null);
+  updateDismissed = $state(false);
+
   private timer: ReturnType<typeof setInterval> | null = null;
   private healthTick = 0;
 
   async start() {
-    this.applyTheme();
     this.info = await api.systemInfo().catch(() => null);
     await this.poll();
     this.refreshHealth();
     this.timer ??= setInterval(() => this.poll(), POLL_MS);
+    setTimeout(() => this.checkUpdate(), 3000);
+    setInterval(() => this.checkUpdate(), UPDATE_CHECK_MS);
     onScanEvent((e) => {
       if (e.kind === "started") this.scanProgress = { done: 0, total: e.total_rules, current: "" };
       else this.scanProgress = { done: e.done, total: e.total, current: e.name };
@@ -78,21 +84,31 @@ class AppStore {
     }
   }
 
+  async checkUpdate() {
+    if (this.updateState === "checking" || this.updateState === "downloading") return;
+    this.updateState = "checking";
+    try {
+      this.update = await checkForUpdate();
+      this.updateState = this.update ? "idle" : "none";
+    } catch {
+      // Offline or no release yet: stay quiet, try again later.
+      this.updateState = "error";
+    }
+  }
+
+  async installUpdate() {
+    if (!this.update) return;
+    this.updateState = "downloading";
+    this.updateProgress = 0;
+    try {
+      await this.update.install((f) => (this.updateProgress = f));
+    } catch {
+      this.updateState = "error";
+    }
+  }
+
   async refreshHealth() {
     this.health = await api.health().catch(() => this.health);
-  }
-
-  setTheme(t: Theme) {
-    this.theme = t;
-    save("theme", t);
-    this.applyTheme();
-  }
-
-  applyTheme() {
-    const dark =
-      this.theme === "dark" ||
-      (this.theme === "system" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
   }
 
   setScanOptions(o: { leftovers: boolean; largeFiles: boolean }) {

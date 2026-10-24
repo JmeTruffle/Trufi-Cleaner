@@ -2,23 +2,19 @@
   import { onMount } from "svelte";
   import Sidebar from "./components/Sidebar.svelte";
   import TitleBar from "./components/TitleBar.svelte";
+  import UpdateBanner from "./components/UpdateBanner.svelte";
   import { app } from "./lib/store.svelte";
   import Cleaner from "./pages/Cleaner.svelte";
   import Optimize from "./pages/Optimize.svelte";
   import Overview from "./pages/Overview.svelte";
   import Settings from "./pages/Settings.svelte";
 
-  onMount(() => {
-    app.start();
-    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    const onChange = () => app.applyTheme();
-    mq?.addEventListener("change", onChange);
-    return () => mq?.removeEventListener("change", onChange);
-  });
+  onMount(() => app.start());
 </script>
 
 <div class="shell">
   <TitleBar />
+  <UpdateBanner />
   <div class="body">
     <Sidebar />
     <main class="scroll">

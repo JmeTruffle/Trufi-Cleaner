@@ -1,0 +1,71 @@
+name: Release
+
+# Every push to main builds a signed installer, publishes it as a GitHub
+# release with a new version, and updates latest.json, which installed
+# copies of the app check to offer "Обновить".
+#
+# Setup (once): add secrets.TAURI_SIGNING_PRIVATE_KEY (see docs/RELEASES.md).
+# The repository must be public so the app can download updates.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install UI dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Tests
+        run: cargo test -p trufi-core -p trufi-platform
+
+      - name: Stamp version
+        id: stamp
+        run: node scripts/stamp-release.mjs ${{ github.run_number }} ${{ github.repository }}
+
+      - name: Release notes
+        shell: bash
+        run: |
+          {
+            echo "## Что нового"
+            echo
+            git log -1 --pretty=format:'%s%n%n%b' | sed '/^Co-Authored-By:/d;/^Claude-Session:/d'
+            echo
+            echo
+            echo "Установка: скачайте **Trufi.Cleaner_${{ steps.stamp.outputs.version }}_x64-setup.exe** и запустите. Права администратора не нужны."
+          } > release-notes.md
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        with:
+          projectPath: apps/desktop
+          tagName: v__VERSION__
+          releaseName: Trufi Cleaner __VERSION__
+          releaseBodyPath: release-notes.md
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

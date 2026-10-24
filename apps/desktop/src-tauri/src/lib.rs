@@ -11,6 +11,8 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let rules_dir = app.path().app_config_dir().ok().map(|d| d.join("rules"));
             app.manage(AppState::new(rules_dir));

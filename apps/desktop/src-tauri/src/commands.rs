@@ -72,7 +72,7 @@ pub struct SystemInfo {
     pub os: &'static str,
     pub os_label: String,
     pub host_name: String,
-    pub app_version: &'static str,
+    pub app_version: String,
     pub is_elevated: bool,
     pub rule_count: usize,
     pub rule_packs: Vec<String>,
@@ -81,13 +81,14 @@ pub struct SystemInfo {
 }
 
 #[tauri::command]
-pub fn system_info(state: State<'_, AppState>) -> SystemInfo {
+pub fn system_info(app: AppHandle, state: State<'_, AppState>) -> SystemInfo {
     let rules = state.rules.read().unwrap();
     SystemInfo {
         os: state.platform.os().as_str(),
         os_label: state.platform.os_label(),
         host_name: sysinfo::System::host_name().unwrap_or_default(),
-        app_version: env!("CARGO_PKG_VERSION"),
+        // The release build stamps the version into tauri.conf.json.
+        app_version: app.package_info().version.to_string(),
         is_elevated: state.platform.is_elevated(),
         rule_count: rules.rules.len(),
         rule_packs: rules.packs.iter().map(|p| p.name.clone()).collect(),

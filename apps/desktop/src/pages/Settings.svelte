@@ -2,14 +2,9 @@
   import Icon from "../components/Icon.svelte";
   import { api } from "../lib/api";
   import { errorText } from "../lib/i18n";
-  import { app, type Theme } from "../lib/store.svelte";
+  import { app } from "../lib/store.svelte";
 
   let error = $state("");
-  const themes: { id: Theme; label: string }[] = [
-    { id: "system", label: "Как в системе" },
-    { id: "light", label: "Светлая" },
-    { id: "dark", label: "Тёмная" },
-  ];
 
   async function elevate() {
     error = "";
@@ -25,19 +20,34 @@
   <div class="page-head">
     <div>
       <h1>Настройки</h1>
-      <p>Оформление, права и правила очистки</p>
+      <p>Обновления, права и правила очистки</p>
     </div>
   </div>
 
-  <section class="card">
-    <div class="card-title">Тема</div>
-    <div class="themes">
-      {#each themes as t}
-        <button class="theme" class:on={app.theme === t.id} onclick={() => app.setTheme(t.id)}>
-          <span class="swatch {t.id}"></span>{t.label}
-        </button>
-      {/each}
+  <section class="card row">
+    <div>
+      <div class="card-title">Обновления</div>
+      <p class="muted">
+        Установлена версия <b>{app.info?.app_version ?? "–"}</b>.
+        {#if app.update}
+          Доступна версия {app.update.version}.
+        {:else if app.updateState === "checking"}
+          Проверяем…
+        {:else if app.updateState === "none"}
+          Это последняя версия.
+        {:else if app.updateState === "error"}
+          Не удалось проверить обновления. Проверьте подключение к интернету.
+        {/if}
+      </p>
+      <p class="faint">Приложение само проверяет обновления при запуске и каждые 6 часов.</p>
     </div>
+    {#if app.update}
+      <button class="btn btn-primary" disabled={app.updateState === "downloading"} onclick={() => app.installUpdate()}>Обновить</button>
+    {:else}
+      <button class="btn btn-ghost" disabled={app.updateState === "checking"} onclick={() => app.checkUpdate()}>
+        <Icon name="refresh" size={16} /> Проверить
+      </button>
+    {/if}
   </section>
 
   <section class="card row">
@@ -80,13 +90,6 @@
 </div>
 
 <style>
-  .themes { display: flex; gap: 10px; }
-  .theme { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); font-weight: 550; }
-  .theme.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-  .swatch { width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--border); }
-  .swatch.light { background: #f4f5f7; }
-  .swatch.dark { background: #171a20; }
-  .swatch.system { background: linear-gradient(135deg, #f4f5f7 50%, #171a20 50%); }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
   p { margin: 0 0 6px; }
   .err { color: var(--bad); }
