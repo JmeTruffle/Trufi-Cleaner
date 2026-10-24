@@ -23,6 +23,15 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
+      - name: Check signing key
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::Secret TAURI_SIGNING_PRIVATE_KEY is not set. Add it in Settings > Secrets and variables > Actions (see docs/RELEASES.md)."
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
