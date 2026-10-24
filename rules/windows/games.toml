@@ -1,0 +1,112 @@
+# Windows: game launchers. Game files and saves are never touched.
+
+[pack]
+id = "windows.games"
+name = "Игры"
+os = "windows"
+version = 1
+
+[[rule]]
+id = "game.steam.cache"
+name = "Steam: кеш и журналы"
+description = "Кеш встроенного браузера, журналы и дампы клиента Steam."
+category = "games"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Steam/htmlcache",
+  "%STEAM%/appcache/httpcache",
+  "%STEAM%/logs",
+  "%STEAM%/dumps",
+  "%STEAMLIBS%/steamapps/temp",
+]
+close_processes = ["steam.exe", "steamwebhelper.exe"]
+
+[[rule]]
+id = "game.steam.shadercache"
+name = "Steam: кеш шейдеров"
+description = "Шейдеры игр Steam. Игра соберёт их заново при запуске, первые минуты могут быть подтормаживания."
+category = "games"
+risk = "moderate"
+paths = ["%STEAMLIBS%/steamapps/shadercache"]
+close_processes = ["steam.exe"]
+
+[[rule]]
+id = "game.epic.cache"
+name = "Epic Games: кеш и журналы"
+category = "games"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/EpicGamesLauncher/Saved/webcache",
+  "%LOCALAPPDATA%/EpicGamesLauncher/Saved/webcache_4147",
+  "%LOCALAPPDATA%/EpicGamesLauncher/Saved/webcache_4430",
+  "%LOCALAPPDATA%/EpicGamesLauncher/Saved/Logs",
+  "%LOCALAPPDATA%/EpicGamesLauncher/Saved/Crashes",
+]
+close_processes = ["EpicGamesLauncher.exe"]
+
+[[rule]]
+id = "game.battlenet.cache"
+name = "Battle.net: кеш"
+category = "games"
+risk = "safe"
+paths = ["%PROGRAMDATA%/Battle.net/Agent/data/cache", "%LOCALAPPDATA%/Battle.net/Cache", "%LOCALAPPDATA%/Battle.net/BrowserCache", "%LOCALAPPDATA%/Blizzard Entertainment/Battle.net/Cache"]
+close_processes = ["Battle.net.exe", "Agent.exe"]
+
+[[rule]]
+id = "game.ea.cache"
+name = "EA app: кеш и журналы"
+category = "games"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Electronic Arts/EA Desktop/CEF/BrowserCache", "%LOCALAPPDATA%/Electronic Arts/EA Desktop/Logs", "%PROGRAMDATA%/EA Desktop/Logs"]
+close_processes = ["EADesktop.exe"]
+
+[[rule]]
+id = "game.ubisoft.cache"
+name = "Ubisoft Connect: кеш"
+category = "games"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Ubisoft Game Launcher/cache", "%LOCALAPPDATA%/Ubisoft Game Launcher/logs", "%PROGRAMFILES(X86)%/Ubisoft/Ubisoft Game Launcher/cache/http", "%PROGRAMFILES(X86)%/Ubisoft/Ubisoft Game Launcher/logs"]
+close_processes = ["UbisoftConnect.exe", "upc.exe"]
+
+[[rule]]
+id = "game.gog.cache"
+name = "GOG Galaxy: кеш и журналы"
+category = "games"
+risk = "safe"
+paths = ["%PROGRAMDATA%/GOG.com/Galaxy/webcache", "%PROGRAMDATA%/GOG.com/Galaxy/logs"]
+close_processes = ["GalaxyClient.exe"]
+
+[[rule]]
+id = "game.riot.logs"
+name = "Riot Client: журналы"
+category = "games"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Riot Games/Riot Client/Logs", "%LOCALAPPDATA%/Riot Games/Riot Client/Data/Cache"]
+close_processes = ["RiotClientServices.exe"]
+
+[[rule]]
+id = "game.unreal.crashes"
+name = "Отчёты о сбоях игр на Unreal Engine"
+category = "games"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/CrashReportClient/Saved", "%LOCALAPPDATA%/UnrealEngine/Common/DerivedDataCache"]
+
+[[rule]]
+id = "game.steam.package"
+name = "Steam: пакеты обновлений клиента"
+description = "Загруженные пакеты обновлений самого Steam. Steam скачает нужные снова при следующем обновлении."
+category = "games"
+risk = "moderate"
+paths = ["%STEAM%/package"]
+include = ["*.zip", "*.zip.*", "*.manifest.*"]
+close_processes = ["steam.exe"]
+
+[[rule]]
+id = "game.steam.downloading"
+name = "Steam: незавершённые загрузки"
+description = "Остатки прерванных загрузок и обновлений игр во всех библиотеках. Не очищайте, пока Steam что-то скачивает."
+category = "games"
+risk = "expert"
+paths = ["%STEAMLIBS%/steamapps/downloading"]
+min_age_hours = 48
+close_processes = ["steam.exe"]

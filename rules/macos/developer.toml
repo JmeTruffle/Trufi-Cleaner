@@ -1,0 +1,21 @@
+[pack]
+id = "macos.developer"
+name = "Разработка"
+os = "macos"
+version = 1
+
+[[rule]]
+id = "mac.dev.xcode.derived_data"
+name = "Xcode: DerivedData"
+description = "Промежуточные файлы сборки. Проекты соберутся заново."
+category = "developer"
+risk = "moderate"
+paths = ["~/Library/Developer/Xcode/DerivedData"]
+close_processes = ["Xcode"]
+
+[[rule]]
+id = "mac.dev.npm.cache"
+name = "npm: кеш пакетов"
+category = "developer"
+risk = "moderate"
+paths = ["~/.npm/_cacache"]

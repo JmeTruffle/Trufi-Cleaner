@@ -1,0 +1,93 @@
+//! The seam between the OS-agnostic core and a concrete operating system.
+//!
+//! Adding macOS (or Linux) support means implementing this trait and
+//! shipping a rule pack for it; nothing else in the core changes.
+
+use crate::model::{InstalledApp, StartupItem};
+use crate::Result;
+use std::collections::HashMap;
+use std::path::PathBuf;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OsFamily {
+    Windows,
+    Macos,
+    Linux,
+}
+
+impl OsFamily {
+    /// Name used in rule packs (`os = "windows"`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            OsFamily::Windows => "windows",
+            OsFamily::Macos => "macos",
+            OsFamily::Linux => "linux",
+        }
+    }
+}
+
+/// Where leftover detection should look and what it must never touch.
+#[derive(Debug, Clone, Default)]
+pub struct LeftoverRoots {
+    /// Folders whose direct children are per-vendor/per-app data folders
+    /// (`%APPDATA%`, `%LOCALAPPDATA%`, `~/Library/Application Support`, ...).
+    pub data_roots: Vec<PathBuf>,
+    /// Folders under these roots need elevation to delete.
+    pub admin_roots: Vec<PathBuf>,
+    /// Child folder names (normalised, see `util::normalize_name`) that
+    /// belong to the OS itself or to drivers and are never leftovers.
+    pub ignore_names: Vec<String>,
+}
+
+pub trait Platform: Send + Sync {
+    fn os(&self) -> OsFamily;
+
+    /// Human readable OS name/version, e.g. "Windows 11 Pro 23H2".
+    fn os_label(&self) -> String;
+
+    /// Variables available to rule path templates (`%LOCALAPPDATA%`, `~`).
+    /// Keys are upper-case.
+    fn path_vars(&self) -> HashMap<String, PathBuf>;
+
+    /// Variables with several values; a rule path using one is tried with
+    /// each. `DRIVES` must list every fixed drive so rules can cover all
+    /// disks, not just the system one.
+    fn path_lists(&self) -> HashMap<String, Vec<PathBuf>> {
+        HashMap::new()
+    }
+
+    /// Paths that must never be deleted or descended into for deletion,
+    /// whatever a rule says.
+    fn protected_paths(&self) -> Vec<PathBuf>;
+
+    /// Folders the large-file search skips (OS, installed programs, games).
+    fn large_file_skip(&self) -> Vec<PathBuf> {
+        Vec::new()
+    }
+
+    fn is_elevated(&self) -> bool;
+
+    /// Restart the current executable with elevated rights.
+    fn relaunch_elevated(&self) -> Result<()> {
+        Err(crate::Error::Unsupported("relaunch_elevated"))
+    }
+
+    fn installed_apps(&self) -> Result<Vec<InstalledApp>>;
+
+    fn leftover_roots(&self) -> LeftoverRoots;
+
+    /// Starts the app's own uninstaller. The uninstaller asks the user.
+    fn uninstall_app(&self, _id: &str) -> Result<()> {
+        Err(crate::Error::Unsupported("uninstall_app"))
+    }
+
+    fn startup_items(&self) -> Result<Vec<StartupItem>>;
+
+    fn set_startup_enabled(&self, id: &str, enabled: bool) -> Result<()>;
+
+    /// Size of the OS trash in bytes and number of items, when the OS can tell.
+    fn trash_info(&self) -> Result<Option<(u64, u64)>>;
+
+    fn empty_trash(&self) -> Result<()>;
+}

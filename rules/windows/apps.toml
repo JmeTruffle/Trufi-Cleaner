@@ -1,0 +1,308 @@
+# Windows: application caches and logs.
+
+[pack]
+id = "windows.apps"
+name = "Программы"
+os = "windows"
+version = 1
+
+[[rule]]
+id = "app.discord.cache"
+name = "Discord: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/discord/Cache",
+  "%APPDATA%/discord/Code Cache",
+  "%APPDATA%/discord/GPUCache",
+  "%APPDATA%/discord/DawnCache",
+  "%APPDATA%/discord/DawnGraphiteCache",
+  "%APPDATA%/discord/DawnWebGPUCache",
+  "%APPDATA%/discord/Service Worker/CacheStorage",
+  "%APPDATA%/discord/Service Worker/ScriptCache",
+  "%APPDATA%/discord/Crashpad/reports",
+]
+close_processes = ["Discord.exe"]
+
+[[rule]]
+id = "app.slack.cache"
+name = "Slack: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/Slack/Cache",
+  "%APPDATA%/Slack/Code Cache",
+  "%APPDATA%/Slack/GPUCache",
+  "%APPDATA%/Slack/DawnCache",
+  "%APPDATA%/Slack/DawnGraphiteCache",
+  "%APPDATA%/Slack/DawnWebGPUCache",
+  "%APPDATA%/Slack/Service Worker/CacheStorage",
+  "%APPDATA%/Slack/Service Worker/ScriptCache",
+  "%APPDATA%/Slack/Crashpad/reports",
+  "%APPDATA%/Slack/logs",
+]
+close_processes = ["slack.exe"]
+
+[[rule]]
+id = "app.teams_classic.cache"
+name = "Microsoft Teams (классический): кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/Microsoft/Teams/Cache",
+  "%APPDATA%/Microsoft/Teams/Code Cache",
+  "%APPDATA%/Microsoft/Teams/GPUCache",
+  "%APPDATA%/Microsoft/Teams/DawnCache",
+  "%APPDATA%/Microsoft/Teams/DawnGraphiteCache",
+  "%APPDATA%/Microsoft/Teams/DawnWebGPUCache",
+  "%APPDATA%/Microsoft/Teams/Service Worker/CacheStorage",
+  "%APPDATA%/Microsoft/Teams/Service Worker/ScriptCache",
+  "%APPDATA%/Microsoft/Teams/Crashpad/reports",
+  "%APPDATA%/Microsoft/Teams/logs",
+  "%APPDATA%/Microsoft/Teams/tmp",
+]
+close_processes = ["Teams.exe"]
+
+[[rule]]
+id = "app.vscode.cache"
+name = "Visual Studio Code: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/Code/Cache",
+  "%APPDATA%/Code/Code Cache",
+  "%APPDATA%/Code/GPUCache",
+  "%APPDATA%/Code/DawnCache",
+  "%APPDATA%/Code/DawnGraphiteCache",
+  "%APPDATA%/Code/DawnWebGPUCache",
+  "%APPDATA%/Code/Service Worker/CacheStorage",
+  "%APPDATA%/Code/Service Worker/ScriptCache",
+  "%APPDATA%/Code/Crashpad",
+  "%APPDATA%/Code/CachedData",
+  "%APPDATA%/Code/CachedExtensionVSIXs",
+  "%APPDATA%/Code/logs",
+]
+close_processes = ["Code.exe"]
+
+[[rule]]
+id = "app.cursor.cache"
+name = "Cursor: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/Cursor/Cache",
+  "%APPDATA%/Cursor/Code Cache",
+  "%APPDATA%/Cursor/GPUCache",
+  "%APPDATA%/Cursor/DawnCache",
+  "%APPDATA%/Cursor/DawnGraphiteCache",
+  "%APPDATA%/Cursor/DawnWebGPUCache",
+  "%APPDATA%/Cursor/Service Worker/CacheStorage",
+  "%APPDATA%/Cursor/Service Worker/ScriptCache",
+  "%APPDATA%/Cursor/Crashpad",
+  "%APPDATA%/Cursor/CachedData",
+  "%APPDATA%/Cursor/CachedExtensionVSIXs",
+  "%APPDATA%/Cursor/logs",
+]
+close_processes = ["Cursor.exe"]
+
+[[rule]]
+id = "app.notion.cache"
+name = "Notion: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/Notion/Cache",
+  "%APPDATA%/Notion/Code Cache",
+  "%APPDATA%/Notion/GPUCache",
+  "%APPDATA%/Notion/DawnCache",
+  "%APPDATA%/Notion/DawnGraphiteCache",
+  "%APPDATA%/Notion/DawnWebGPUCache",
+  "%APPDATA%/Notion/Service Worker/CacheStorage",
+  "%APPDATA%/Notion/Service Worker/ScriptCache",
+  "%APPDATA%/Notion/Crashpad/reports",
+  "%APPDATA%/Notion/logs",
+]
+close_processes = ["Notion.exe"]
+
+[[rule]]
+id = "app.obsidian.cache"
+name = "Obsidian: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/obsidian/Cache",
+  "%APPDATA%/obsidian/Code Cache",
+  "%APPDATA%/obsidian/GPUCache",
+  "%APPDATA%/obsidian/DawnCache",
+  "%APPDATA%/obsidian/DawnGraphiteCache",
+  "%APPDATA%/obsidian/DawnWebGPUCache",
+  "%APPDATA%/obsidian/Service Worker/CacheStorage",
+  "%APPDATA%/obsidian/Service Worker/ScriptCache",
+  "%APPDATA%/obsidian/Crashpad/reports",
+]
+close_processes = ["Obsidian.exe"]
+
+[[rule]]
+id = "app.figma.cache"
+name = "Figma: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/Figma/DesktopProfile/*/Cache",
+  "%APPDATA%/Figma/DesktopProfile/*/Code Cache",
+  "%APPDATA%/Figma/DesktopProfile/*/GPUCache",
+  "%APPDATA%/Figma/DesktopProfile/*/DawnCache",
+  "%APPDATA%/Figma/DesktopProfile/*/DawnGraphiteCache",
+  "%APPDATA%/Figma/DesktopProfile/*/DawnWebGPUCache",
+  "%APPDATA%/Figma/DesktopProfile/*/Service Worker/CacheStorage",
+  "%APPDATA%/Figma/DesktopProfile/*/Service Worker/ScriptCache",
+  "%APPDATA%/Figma/DesktopProfile/*/Crashpad/reports",
+]
+close_processes = ["Figma.exe"]
+
+[[rule]]
+id = "app.postman.cache"
+name = "Postman: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/Postman/Cache",
+  "%APPDATA%/Postman/Code Cache",
+  "%APPDATA%/Postman/GPUCache",
+  "%APPDATA%/Postman/DawnCache",
+  "%APPDATA%/Postman/DawnGraphiteCache",
+  "%APPDATA%/Postman/DawnWebGPUCache",
+  "%APPDATA%/Postman/Service Worker/CacheStorage",
+  "%APPDATA%/Postman/Service Worker/ScriptCache",
+  "%APPDATA%/Postman/Crashpad/reports",
+  "%APPDATA%/Postman/logs",
+]
+close_processes = ["Postman.exe"]
+
+[[rule]]
+id = "app.whatsapp.cache"
+name = "WhatsApp (классический): кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%APPDATA%/WhatsApp/Cache",
+  "%APPDATA%/WhatsApp/Code Cache",
+  "%APPDATA%/WhatsApp/GPUCache",
+  "%APPDATA%/WhatsApp/DawnCache",
+  "%APPDATA%/WhatsApp/DawnGraphiteCache",
+  "%APPDATA%/WhatsApp/DawnWebGPUCache",
+  "%APPDATA%/WhatsApp/Service Worker/CacheStorage",
+  "%APPDATA%/WhatsApp/Service Worker/ScriptCache",
+  "%APPDATA%/WhatsApp/Crashpad/reports",
+]
+close_processes = ["WhatsApp.exe"]
+
+[[rule]]
+id = "app.teams_new.cache"
+name = "Microsoft Teams: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Packages/MSTeams_8wekyb3d8bbwe/LocalCache/Microsoft/MSTeams/EBWebView/*/Cache",
+  "%LOCALAPPDATA%/Packages/MSTeams_8wekyb3d8bbwe/LocalCache/Microsoft/MSTeams/EBWebView/*/Code Cache",
+  "%LOCALAPPDATA%/Packages/MSTeams_8wekyb3d8bbwe/LocalCache/Microsoft/MSTeams/EBWebView/*/GPUCache",
+  "%LOCALAPPDATA%/Packages/MSTeams_8wekyb3d8bbwe/LocalCache/Microsoft/MSTeams/Logs",
+]
+close_processes = ["ms-teams.exe"]
+
+[[rule]]
+id = "app.telegram.media_cache"
+name = "Telegram: кеш медиа"
+description = "Загруженные фото, видео и стикеры. Telegram скачает их снова при открытии чата."
+category = "apps"
+risk = "moderate"
+paths = ["%APPDATA%/Telegram Desktop/tdata/user_data", "%APPDATA%/Telegram Desktop/tdata/emoji"]
+close_processes = ["Telegram.exe"]
+
+[[rule]]
+id = "app.spotify.cache"
+name = "Spotify: кеш"
+description = "Кеш потоковой музыки. Скачанные для офлайна треки не затрагиваются."
+category = "apps"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Spotify/Data", "%LOCALAPPDATA%/Spotify/Browser/Cache"]
+close_processes = ["Spotify.exe"]
+
+[[rule]]
+id = "app.zoom.logs"
+name = "Zoom: журналы"
+category = "logs"
+risk = "safe"
+paths = ["%APPDATA%/Zoom/logs"]
+
+[[rule]]
+id = "app.onedrive.logs"
+name = "OneDrive: журналы"
+category = "logs"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Microsoft/OneDrive/logs", "%LOCALAPPDATA%/Microsoft/OneDrive/setup/logs"]
+min_age_hours = 72
+
+[[rule]]
+id = "app.adobe.media_cache"
+name = "Adobe: медиакеш"
+description = "Кеш Premiere Pro и After Effects. Проекты не затрагиваются, превью пересоздадутся."
+category = "apps"
+risk = "moderate"
+paths = ["%APPDATA%/Adobe/Common/Media Cache Files", "%APPDATA%/Adobe/Common/Media Cache", "%APPDATA%/Adobe/Common/Peak Files"]
+close_processes = ["Adobe Premiere Pro.exe", "AfterFX.exe"]
+
+[[rule]]
+id = "app.java.cache"
+name = "Java: кеш загрузок"
+category = "apps"
+risk = "safe"
+paths = ["%USERPROFILE%/AppData/LocalLow/Sun/Java/Deployment/cache"]
+
+[[rule]]
+id = "app.office.telemetry"
+name = "Microsoft Office: временные файлы"
+category = "apps"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Microsoft/Office/OTele", "%LOCALAPPDATA%/Microsoft/Office/16.0/Wef/webview2", "%LOCALAPPDATA%/Temp/Outlook Logging"]
+
+[[rule]]
+id = "app.vkplay.cache"
+name = "VK Play: кеш"
+category = "games"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/GameCenter/Cache", "%LOCALAPPDATA%/GameCenter/Logs"]
+close_processes = ["GameCenter.exe"]
+
+[[rule]]
+id = "app.roblox.old_versions"
+name = "Roblox: старые версии"
+description = "Roblox ставит каждое обновление в новую папку и не удаляет прежние. Самая новая версия остаётся."
+category = "games"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Roblox/Versions"]
+keep_newest = 1
+close_processes = ["RobloxPlayerBeta.exe", "RobloxStudioBeta.exe"]
+
+[[rule]]
+id = "app.roblox.cache"
+name = "Roblox: загрузки и журналы"
+category = "games"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Roblox/Downloads", "%LOCALAPPDATA%/Roblox/logs"]
+close_processes = ["RobloxPlayerBeta.exe"]
+
+[[rule]]
+id = "app.unity.cache"
+name = "Unity: кеш"
+category = "developer"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Unity/Caches", "%APPDATA%/UnityHub/Cache", "%APPDATA%/UnityHub/Code Cache", "%APPDATA%/UnityHub/GPUCache"]
+close_processes = ["Unity.exe", "Unity Hub.exe"]
+
+[[rule]]
+id = "app.lightshot.cache"
+name = "Lightshot: временные скриншоты"
+category = "apps"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Skillbrains/lightshot/temp"]

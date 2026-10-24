@@ -1,0 +1,41 @@
+# macOS: first draft. The macOS platform layer is not implemented yet;
+# these rules are here so the schema stays cross-platform from day one.
+
+[pack]
+id = "macos.system"
+name = "macOS"
+os = "macos"
+version = 1
+
+[[rule]]
+id = "mac.trash"
+name = "Корзина"
+category = "system"
+risk = "moderate"
+default = true
+special = "trash"
+
+[[rule]]
+id = "mac.user_caches"
+name = "Кеши программ"
+description = "~/Library/Caches. Программы пересоздают их сами."
+category = "system"
+risk = "safe"
+paths = ["~/Library/Caches"]
+exclude = ["com.apple.Safari/**", "CloudKit/**"]
+min_age_hours = 24
+
+[[rule]]
+id = "mac.user_logs"
+name = "Журналы программ"
+category = "logs"
+risk = "safe"
+paths = ["~/Library/Logs"]
+min_age_hours = 72
+
+[[rule]]
+id = "mac.crash_reports"
+name = "Отчёты о сбоях"
+category = "logs"
+risk = "safe"
+paths = ["~/Library/Logs/DiagnosticReports"]

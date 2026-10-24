@@ -1,0 +1,113 @@
+# Windows: developer tool caches. Reinstall/rebuild is needed after
+# cleaning, so most are "moderate" and not pre-selected.
+
+[pack]
+id = "windows.developer"
+name = "Разработка"
+os = "windows"
+version = 1
+
+[[rule]]
+id = "dev.npm.cache"
+name = "npm: кеш пакетов"
+category = "developer"
+risk = "moderate"
+paths = ["%LOCALAPPDATA%/npm-cache/_cacache", "%APPDATA%/npm-cache/_cacache"]
+
+[[rule]]
+id = "dev.yarn.cache"
+name = "Yarn: кеш пакетов"
+description = "Глобальный кеш Yarn 1 и Yarn Berry. Пакеты скачаются снова при следующей установке."
+category = "developer"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Yarn/Cache", "%LOCALAPPDATA%/Yarn/Berry/cache"]
+
+[[rule]]
+id = "dev.pnpm.store"
+name = "pnpm: хранилище пакетов"
+description = "После очистки pnpm скачает пакеты заново при следующей установке."
+category = "developer"
+risk = "expert"
+paths = ["%LOCALAPPDATA%/pnpm/store", "%LOCALAPPDATA%/pnpm-cache"]
+
+[[rule]]
+id = "dev.pip.cache"
+name = "pip: кеш пакетов"
+category = "developer"
+risk = "moderate"
+paths = ["%LOCALAPPDATA%/pip/cache"]
+
+[[rule]]
+id = "dev.uv.cache"
+name = "uv: кеш пакетов"
+category = "developer"
+risk = "moderate"
+paths = ["%LOCALAPPDATA%/uv/cache"]
+
+[[rule]]
+id = "dev.nuget.cache"
+name = "NuGet: временный кеш"
+category = "developer"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/NuGet/v3-cache", "%LOCALAPPDATA%/NuGet/plugins-cache", "%LOCALAPPDATA%/Temp/NuGetScratch"]
+
+[[rule]]
+id = "dev.gradle.cache"
+name = "Gradle: кеш"
+category = "developer"
+risk = "moderate"
+paths = ["%USERPROFILE%/.gradle/caches"]
+close_processes = ["java.exe"]
+
+[[rule]]
+id = "dev.cargo.cache"
+name = "Cargo: кеш загрузок"
+category = "developer"
+risk = "moderate"
+paths = ["%USERPROFILE%/.cargo/registry/cache"]
+
+[[rule]]
+id = "dev.go.cache"
+name = "Go: кеш сборки"
+category = "developer"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/go-build"]
+
+[[rule]]
+id = "dev.jetbrains.caches"
+name = "JetBrains IDE: кеши и журналы"
+description = "Индексы и журналы. IDE переиндексирует проекты при следующем открытии."
+category = "developer"
+risk = "moderate"
+paths = ["%LOCALAPPDATA%/JetBrains/*/caches", "%LOCALAPPDATA%/JetBrains/*/log", "%LOCALAPPDATA%/JetBrains/*/tmp"]
+
+[[rule]]
+id = "dev.vs.cache"
+name = "Visual Studio: кеши компонентов"
+category = "developer"
+risk = "moderate"
+paths = ["%LOCALAPPDATA%/Microsoft/VisualStudio/*/ComponentModelCache", "%LOCALAPPDATA%/Microsoft/VSCommon/*/SQM", "%LOCALAPPDATA%/Temp/VSFeedbackIntelliCodeLogs"]
+close_processes = ["devenv.exe"]
+
+[[rule]]
+id = "dev.electron_builder"
+name = "Electron: кеш сборщиков"
+category = "developer"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/electron/Cache", "%LOCALAPPDATA%/electron-builder/Cache"]
+
+[[rule]]
+id = "dev.playwright"
+name = "Playwright и Puppeteer: браузеры"
+description = "Скачанные тестовые браузеры. Скачаются снова при следующем запуске тестов."
+category = "developer"
+risk = "expert"
+paths = ["%LOCALAPPDATA%/ms-playwright", "%USERPROFILE%/.cache/puppeteer"]
+
+[[rule]]
+id = "dev.docker.logs"
+name = "Docker Desktop: журналы"
+category = "developer"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Docker/log"]
+min_age_hours = 72

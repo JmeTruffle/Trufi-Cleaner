@@ -1,0 +1,25 @@
+[pack]
+id = "macos.browsers"
+name = "Браузеры"
+os = "macos"
+version = 1
+
+[[rule]]
+id = "mac.browser.chrome.cache"
+name = "Google Chrome: кеш"
+category = "browsers"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Google/Chrome/*/Code Cache",
+  "~/Library/Application Support/Google/Chrome/*/GPUCache",
+  "~/Library/Application Support/Google/Chrome/*/Service Worker/CacheStorage",
+]
+close_processes = ["Google Chrome"]
+
+[[rule]]
+id = "mac.browser.firefox.cache"
+name = "Firefox: кеш"
+category = "browsers"
+risk = "safe"
+paths = ["~/Library/Caches/Firefox/Profiles/*/cache2"]
+close_processes = ["firefox"]

@@ -1,0 +1,211 @@
+# Windows: browser caches. Only caches: history, cookies, passwords and
+# sessions are never touched by these rules.
+
+[pack]
+id = "windows.browsers"
+name = "Браузеры"
+os = "windows"
+version = 1
+
+[[rule]]
+id = "browser.chrome.cache"
+name = "Google Chrome: кеш"
+description = "Кеш страниц, скриптов и шейдеров во всех профилях. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/Cache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/Code Cache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/GPUCache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/DawnGraphiteCache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/DawnWebGPUCache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/Service Worker/CacheStorage",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/Service Worker/ScriptCache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/*/Media Cache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/ShaderCache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/GrShaderCache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/GraphiteDawnCache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/Crashpad/reports",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/component_crx_cache",
+  "%LOCALAPPDATA%/Google/Chrome/User Data/extensions_crx_cache",
+]
+close_processes = ["chrome.exe"]
+
+[[rule]]
+id = "browser.edge.cache"
+name = "Microsoft Edge: кеш"
+description = "Кеш страниц, скриптов и шейдеров во всех профилях. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Cache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Code Cache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/GPUCache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/DawnGraphiteCache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/DawnWebGPUCache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Service Worker/CacheStorage",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Service Worker/ScriptCache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/*/Media Cache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/ShaderCache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/GrShaderCache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/GraphiteDawnCache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/Crashpad/reports",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/component_crx_cache",
+  "%LOCALAPPDATA%/Microsoft/Edge/User Data/extensions_crx_cache",
+]
+close_processes = ["msedge.exe"]
+
+[[rule]]
+id = "browser.yandex.cache"
+name = "Яндекс Браузер: кеш"
+description = "Кеш страниц, скриптов и шейдеров во всех профилях. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/Cache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/Code Cache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/GPUCache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/DawnGraphiteCache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/DawnWebGPUCache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/Service Worker/CacheStorage",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/Service Worker/ScriptCache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/*/Media Cache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/ShaderCache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/GrShaderCache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/GraphiteDawnCache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/Crashpad/reports",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/component_crx_cache",
+  "%LOCALAPPDATA%/Yandex/YandexBrowser/User Data/extensions_crx_cache",
+]
+close_processes = ["browser.exe"]
+
+[[rule]]
+id = "browser.brave.cache"
+name = "Brave: кеш"
+description = "Кеш страниц, скриптов и шейдеров во всех профилях. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Cache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Code Cache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/GPUCache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/DawnGraphiteCache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/DawnWebGPUCache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Service Worker/CacheStorage",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Service Worker/ScriptCache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/*/Media Cache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/ShaderCache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/GrShaderCache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/GraphiteDawnCache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/Crashpad/reports",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/component_crx_cache",
+  "%LOCALAPPDATA%/BraveSoftware/Brave-Browser/User Data/extensions_crx_cache",
+]
+close_processes = ["brave.exe"]
+
+[[rule]]
+id = "browser.vivaldi.cache"
+name = "Vivaldi: кеш"
+description = "Кеш страниц, скриптов и шейдеров во всех профилях. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/Cache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/Code Cache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/GPUCache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/DawnGraphiteCache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/DawnWebGPUCache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/Service Worker/CacheStorage",
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/Service Worker/ScriptCache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/*/Media Cache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/ShaderCache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/GrShaderCache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/GraphiteDawnCache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/Crashpad/reports",
+  "%LOCALAPPDATA%/Vivaldi/User Data/component_crx_cache",
+  "%LOCALAPPDATA%/Vivaldi/User Data/extensions_crx_cache",
+]
+close_processes = ["vivaldi.exe"]
+
+[[rule]]
+id = "browser.chromium.cache"
+name = "Chromium: кеш"
+description = "Кеш страниц, скриптов и шейдеров во всех профилях. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Chromium/User Data/*/Cache",
+  "%LOCALAPPDATA%/Chromium/User Data/*/Code Cache",
+  "%LOCALAPPDATA%/Chromium/User Data/*/GPUCache",
+  "%LOCALAPPDATA%/Chromium/User Data/*/DawnGraphiteCache",
+  "%LOCALAPPDATA%/Chromium/User Data/*/DawnWebGPUCache",
+  "%LOCALAPPDATA%/Chromium/User Data/*/Service Worker/CacheStorage",
+  "%LOCALAPPDATA%/Chromium/User Data/*/Service Worker/ScriptCache",
+  "%LOCALAPPDATA%/Chromium/User Data/*/Media Cache",
+  "%LOCALAPPDATA%/Chromium/User Data/ShaderCache",
+  "%LOCALAPPDATA%/Chromium/User Data/GrShaderCache",
+  "%LOCALAPPDATA%/Chromium/User Data/GraphiteDawnCache",
+  "%LOCALAPPDATA%/Chromium/User Data/Crashpad/reports",
+  "%LOCALAPPDATA%/Chromium/User Data/component_crx_cache",
+  "%LOCALAPPDATA%/Chromium/User Data/extensions_crx_cache",
+]
+close_processes = ["chrome.exe"]
+
+[[rule]]
+id = "browser.opera.cache"
+name = "Opera: кеш"
+description = "Кеш страниц, скриптов и шейдеров. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Opera Software/Opera Stable/Cache",
+  "%LOCALAPPDATA%/Opera Software/Opera Stable/Default/Cache",
+  "%APPDATA%/Opera Software/Opera Stable/Code Cache",
+  "%APPDATA%/Opera Software/Opera Stable/GPUCache",
+  "%APPDATA%/Opera Software/Opera Stable/ShaderCache",
+  "%APPDATA%/Opera Software/Opera Stable/Service Worker/CacheStorage",
+  "%APPDATA%/Opera Software/Opera Stable/Default/Code Cache",
+  "%APPDATA%/Opera Software/Opera Stable/Default/GPUCache",
+  "%APPDATA%/Opera Software/Opera Stable/Default/Service Worker/CacheStorage",
+]
+close_processes = ["opera.exe"]
+
+[[rule]]
+id = "browser.opera_gx.cache"
+name = "Opera GX: кеш"
+description = "Кеш страниц, скриптов и шейдеров. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Opera Software/Opera GX Stable/Cache",
+  "%LOCALAPPDATA%/Opera Software/Opera GX Stable/Default/Cache",
+  "%APPDATA%/Opera Software/Opera GX Stable/Code Cache",
+  "%APPDATA%/Opera Software/Opera GX Stable/GPUCache",
+  "%APPDATA%/Opera Software/Opera GX Stable/ShaderCache",
+  "%APPDATA%/Opera Software/Opera GX Stable/Service Worker/CacheStorage",
+  "%APPDATA%/Opera Software/Opera GX Stable/Default/Code Cache",
+  "%APPDATA%/Opera Software/Opera GX Stable/Default/GPUCache",
+  "%APPDATA%/Opera Software/Opera GX Stable/Default/Service Worker/CacheStorage",
+]
+close_processes = ["opera.exe"]
+
+[[rule]]
+id = "browser.firefox.cache"
+name = "Firefox: кеш"
+description = "Кеш страниц и миниатюр во всех профилях. Вход на сайты сохранится."
+category = "browsers"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/cache2",
+  "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/startupCache",
+  "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/thumbnails",
+  "%LOCALAPPDATA%/Mozilla/Firefox/Profiles/*/jumpListCache",
+]
+close_processes = ["firefox.exe"]
+
+[[rule]]
+id = "browser.firefox.crash_reports"
+name = "Firefox: отчёты о сбоях"
+category = "logs"
+risk = "safe"
+paths = ["%APPDATA%/Mozilla/Firefox/Crash Reports/submitted", "%APPDATA%/Mozilla/Firefox/Crash Reports/pending"]

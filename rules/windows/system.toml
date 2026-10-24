@@ -1,0 +1,252 @@
+# Windows: system caches, temp files and logs.
+# Schema: docs/RULES.md. Paths use forward slashes; both work on Windows.
+
+[pack]
+id = "windows.system"
+name = "Windows"
+os = "windows"
+version = 1
+
+[[rule]]
+id = "win.recycle_bin"
+name = "Корзина"
+description = "Файлы, удалённые в Корзину, на всех дисках сразу."
+category = "system"
+risk = "moderate"
+default = false
+special = "trash"
+
+[[rule]]
+id = "win.temp.user"
+name = "Временные файлы пользователя"
+description = "Папка TEMP. Файлы младше суток не трогаем: ими могут пользоваться запущенные программы."
+category = "system"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Temp"]
+min_age_hours = 24
+
+[[rule]]
+id = "win.temp.system"
+name = "Временные файлы Windows"
+description = "C:\\Windows\\Temp. Нужны права администратора."
+category = "system"
+risk = "safe"
+requires_admin = true
+paths = ["%WINDIR%/Temp"]
+min_age_hours = 24
+
+[[rule]]
+id = "win.inetcache"
+name = "Кеш интернета Windows"
+description = "Кеш WinINet, который используют Проводник, справка и старые встроенные компоненты."
+category = "system"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Microsoft/Windows/INetCache"]
+exclude = ["**/Content.IE5/index.dat"]
+
+[[rule]]
+id = "win.thumbcache"
+name = "Кеш эскизов"
+description = "Миниатюры изображений в Проводнике. Пересоздаются при просмотре папок."
+category = "system"
+risk = "moderate"
+paths = ["%LOCALAPPDATA%/Microsoft/Windows/Explorer"]
+include = ["thumbcache_*.db", "iconcache_*.db"]
+max_depth = 1
+remove_empty_dirs = false
+close_processes = ["explorer.exe"]
+
+[[rule]]
+id = "win.shader_cache"
+name = "Кеш шейдеров DirectX"
+description = "Скомпилированные шейдеры. Игры пересоберут их при первом запуске."
+category = "system"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/D3DSCache"]
+
+[[rule]]
+id = "win.gpu.nvidia"
+name = "Кеш шейдеров NVIDIA"
+category = "system"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/NVIDIA/DXCache",
+  "%LOCALAPPDATA%/NVIDIA/GLCache",
+  "%LOCALAPPDATA%/NVIDIA Corporation/NV_Cache",
+  "%PROGRAMDATA%/NVIDIA Corporation/NV_Cache",
+]
+
+[[rule]]
+id = "win.gpu.nvidia_installers"
+name = "Распакованные установщики драйвера NVIDIA"
+description = "C:\\NVIDIA и старые пакеты драйвера, которые остаются после установки."
+category = "system"
+risk = "safe"
+requires_admin = true
+paths = [
+  "%DRIVES%/NVIDIA",
+  "%PROGRAMDATA%/NVIDIA Corporation/Downloader",
+  "%PROGRAMFILES%/NVIDIA Corporation/Installer2",
+]
+
+[[rule]]
+id = "win.gpu.amd"
+name = "Кеш шейдеров AMD"
+category = "system"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/AMD/DxCache",
+  "%LOCALAPPDATA%/AMD/DxcCache",
+  "%LOCALAPPDATA%/AMD/GLCache",
+  "%LOCALAPPDATA%/AMD/VkCache",
+]
+
+[[rule]]
+id = "win.gpu.amd_installers"
+name = "Распакованный установщик AMD Software"
+description = "C:\\AMD\\AMD-Software-Installer остаётся после установки драйвера и может занимать несколько гигабайт."
+category = "system"
+risk = "safe"
+paths = ["%DRIVES%/AMD/AMD-Software-Installer"]
+
+[[rule]]
+id = "win.gpu.amd_chipset_extract"
+name = "Распакованные драйверы чипсета AMD"
+description = "C:\\AMD\\Chipset_Software. На эту папку могут ссылаться записи установленных драйверов, удаление может помешать их восстановлению."
+category = "system"
+risk = "expert"
+paths = ["%SYSTEMDRIVE%/AMD/Chipset_Software"]
+
+[[rule]]
+id = "win.gpu.intel"
+name = "Кеш шейдеров Intel"
+category = "system"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/Intel/ShaderCache", "%USERPROFILE%/AppData/LocalLow/Intel/ShaderCache"]
+
+[[rule]]
+id = "win.update.download"
+name = "Загрузки Центра обновления"
+description = "Уже установленные пакеты обновлений. Windows скачает заново, если понадобится."
+category = "system"
+risk = "moderate"
+requires_admin = true
+paths = ["%WINDIR%/SoftwareDistribution/Download"]
+min_age_hours = 72
+
+[[rule]]
+id = "win.delivery_optimization"
+name = "Кеш оптимизации доставки"
+description = "Файлы обновлений, которыми Windows делится с другими ПК."
+category = "system"
+risk = "safe"
+requires_admin = true
+paths = ["%WINDIR%/ServiceProfiles/NetworkService/AppData/Local/Microsoft/Windows/DeliveryOptimization/Cache"]
+
+[[rule]]
+id = "win.wer"
+name = "Отчёты об ошибках Windows"
+description = "Отчёты о сбоях программ, уже отправленные или не нужные."
+category = "logs"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Microsoft/Windows/WER",
+  "%PROGRAMDATA%/Microsoft/Windows/WER/ReportArchive",
+  "%PROGRAMDATA%/Microsoft/Windows/WER/ReportQueue",
+]
+
+[[rule]]
+id = "win.crashdumps"
+name = "Дампы памяти программ"
+category = "logs"
+risk = "safe"
+paths = ["%LOCALAPPDATA%/CrashDumps"]
+
+[[rule]]
+id = "win.minidump"
+name = "Дампы памяти системы"
+description = "Файлы после синих экранов. Нужны только для диагностики сбоев."
+category = "logs"
+risk = "moderate"
+requires_admin = true
+paths = ["%WINDIR%/Minidump", "%WINDIR%/MEMORY.DMP", "%WINDIR%/LiveKernelReports"]
+
+[[rule]]
+id = "win.logs"
+name = "Журналы Windows"
+description = "Текстовые журналы установки и обслуживания старше недели."
+category = "logs"
+risk = "safe"
+requires_admin = true
+paths = ["%WINDIR%/Logs", "%WINDIR%/INF/setupapi.dev.log", "%PROGRAMDATA%/USOShared/Logs"]
+include = ["*.log", "*.cab", "*.etl"]
+min_age_hours = 168
+
+[[rule]]
+id = "win.store_cache"
+name = "Кеш приложений Microsoft Store"
+description = "Временные файлы и кеш UWP-приложений."
+category = "apps"
+risk = "safe"
+paths = [
+  "%LOCALAPPDATA%/Packages/*/AC/INetCache",
+  "%LOCALAPPDATA%/Packages/*/AC/Temp",
+  "%LOCALAPPDATA%/Packages/*/TempState",
+]
+
+[[rule]]
+id = "win.old_installation"
+name = "Предыдущая установка Windows"
+description = "Папка Windows.old. После удаления откатиться на прошлую версию Windows будет нельзя."
+category = "system"
+risk = "expert"
+requires_admin = true
+paths = ["%SYSTEMDRIVE%/Windows.old"]
+
+[[rule]]
+id = "win.upgrade_leftovers"
+name = "Временные файлы обновления Windows"
+description = "Папки $Windows.~BT, $Windows.~WS, $GetCurrent и OneDriveTemp после обновления системы."
+category = "system"
+risk = "safe"
+requires_admin = true
+paths = [
+  "%DRIVES%/$Windows.~BT",
+  "%DRIVES%/$Windows.~WS",
+  "%SYSTEMDRIVE%/$GetCurrent",
+  "%DRIVES%/OneDriveTemp",
+]
+
+[[rule]]
+id = "win.ue_shader_precache"
+name = "Предкомпиляция шейдеров игр"
+description = "Файлы *.ushaderprecache в ProgramData (игры на Unreal Engine). Пересоздаются при запуске игры."
+category = "games"
+risk = "safe"
+paths = ["%PROGRAMDATA%/*"]
+include = ["*.ushaderprecache"]
+max_depth = 1
+remove_empty_dirs = false
+
+[[rule]]
+id = "win.recent_items"
+name = "Недавние документы"
+description = "Ярлыки в списке «Недавние» Проводника. Сами файлы не удаляются."
+category = "privacy"
+risk = "expert"
+paths = ["%APPDATA%/Microsoft/Windows/Recent"]
+include = ["*.lnk"]
+max_depth = 1
+remove_empty_dirs = false
+
+[[rule]]
+id = "win.downloads_installers"
+name = "Установщики в Загрузках"
+description = "Файлы .exe, .msi и .msix в папке «Загрузки». Проверьте список: может быть нужен установщик, который трудно скачать снова."
+category = "apps"
+risk = "expert"
+paths = ["%USERPROFILE%/Downloads"]
+include = ["*.exe", "*.msi", "*.msix", "*.msixbundle"]
+max_depth = 1
+min_age_hours = 24
+remove_empty_dirs = false

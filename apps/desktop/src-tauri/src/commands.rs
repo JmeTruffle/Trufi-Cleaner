@@ -1,0 +1,259 @@
+use crate::state::{AppState, CPU_HISTORY};
+use serde::Serialize;
+use std::path::PathBuf;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use tauri::{AppHandle, Emitter, Manager, State};
+use trufi_core::advisor::{advise, Advice};
+use trufi_core::cleaner::{clean as run_clean, CleanRequest};
+use trufi_core::health::{evaluate, Health, HealthInput};
+use trufi_core::model::{CleanReport, InstalledApp, ScanSummary, StartupItem};
+use trufi_core::monitor::SystemSnapshot;
+use trufi_core::rules::Rule;
+use trufi_core::scanner::{ScanOptions, Scanner};
+
+/// Errors cross the IPC boundary as a code the UI translates plus details.
+#[derive(Debug, Serialize)]
+pub struct CommandError {
+    pub code: &'static str,
+    pub message: String,
+}
+
+impl From<trufi_core::Error> for CommandError {
+    fn from(e: trufi_core::Error) -> Self {
+        let code = match e {
+            trufi_core::Error::ElevationRequired => "elevation_required",
+            trufi_core::Error::Unsupported(_) => "unsupported",
+            _ => "failed",
+        };
+        CommandError { code, message: e.to_string() }
+    }
+}
+
+fn fail(code: &'static str, message: impl Into<String>) -> CommandError {
+    CommandError { code, message: message.into() }
+}
+
+type CmdResult<T> = Result<T, CommandError>;
+
+/// Runs blocking work off the main thread with access to the state.
+async fn blocking<T, F>(app: &AppHandle, f: F) -> CmdResult<T>
+where
+    T: Send + 'static,
+    F: FnOnce(&AppState) -> CmdResult<T> + Send + 'static,
+{
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || f(&app.state::<AppState>()))
+        .await
+        .map_err(|e| fail("failed", e.to_string()))?
+}
+
+/// Prevents a scan and a clean from running at the same time.
+struct BusyGuard<'a>(&'a AppState);
+
+impl<'a> BusyGuard<'a> {
+    fn acquire(state: &'a AppState) -> CmdResult<Self> {
+        state
+            .busy
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map(|_| BusyGuard(state))
+            .map_err(|_| fail("busy", "another operation is running"))
+    }
+}
+
+impl Drop for BusyGuard<'_> {
+    fn drop(&mut self) {
+        self.0.busy.store(false, Ordering::SeqCst);
+    }
+}
+
+#[derive(Serialize)]
+pub struct SystemInfo {
+    pub os: &'static str,
+    pub os_label: String,
+    pub host_name: String,
+    pub app_version: &'static str,
+    pub is_elevated: bool,
+    pub rule_count: usize,
+    pub rule_packs: Vec<String>,
+    pub rule_errors: Vec<String>,
+    pub user_rules_dir: Option<PathBuf>,
+}
+
+#[tauri::command]
+pub fn system_info(state: State<'_, AppState>) -> SystemInfo {
+    let rules = state.rules.read().unwrap();
+    SystemInfo {
+        os: state.platform.os().as_str(),
+        os_label: state.platform.os_label(),
+        host_name: sysinfo::System::host_name().unwrap_or_default(),
+        app_version: env!("CARGO_PKG_VERSION"),
+        is_elevated: state.platform.is_elevated(),
+        rule_count: rules.rules.len(),
+        rule_packs: rules.packs.iter().map(|p| p.name.clone()).collect(),
+        rule_errors: state.rule_errors.clone(),
+        user_rules_dir: state.user_rules_dir.clone(),
+    }
+}
+
+#[tauri::command]
+pub async fn snapshot(app: AppHandle) -> CmdResult<SystemSnapshot> {
+    blocking(&app, |state| {
+        let snap = state.monitor.lock().unwrap().snapshot();
+        let mut hist = state.cpu_history.lock().unwrap();
+        if hist.len() == CPU_HISTORY {
+            hist.pop_front();
+        }
+        hist.push_back(snap.cpu_percent);
+        *state.last_snapshot.lock().unwrap() = Some(snap.clone());
+        Ok(snap)
+    })
+    .await
+}
+
+#[derive(Serialize)]
+pub struct HealthReport {
+    pub health: Health,
+    pub advice: Vec<Advice>,
+}
+
+#[tauri::command]
+pub async fn health(app: AppHandle) -> CmdResult<HealthReport> {
+    blocking(&app, |state| {
+        let snap = match state.last_snapshot.lock().unwrap().clone() {
+            Some(s) => s,
+            None => state.monitor.lock().unwrap().snapshot(),
+        };
+        let hist = state.cpu_history.lock().unwrap();
+        let cpu_avg = if hist.is_empty() {
+            snap.cpu_percent
+        } else {
+            hist.iter().sum::<f32>() / hist.len() as f32
+        };
+        let scan = state.last_scan.lock().unwrap().clone();
+        let mut startup = *state.startup_enabled.lock().unwrap();
+        if startup.is_none() {
+            if let Ok(items) = state.platform.startup_items() {
+                let n = items.iter().filter(|i| i.enabled).count();
+                startup = Some(n);
+                *state.startup_enabled.lock().unwrap() = startup;
+            }
+        }
+        let input = HealthInput {
+            cpu_avg_percent: cpu_avg,
+            junk_bytes: scan.as_ref().map(|s| s.summary().total_bytes),
+            startup_enabled: startup,
+        };
+        let health = evaluate(&snap, &input);
+        let advice = advise(&snap, &health, scan.is_some());
+        Ok(HealthReport { health, advice })
+    })
+    .await
+}
+
+#[tauri::command]
+pub fn rules(state: State<'_, AppState>) -> Vec<Rule> {
+    state.rules.read().unwrap().rules.clone()
+}
+
+#[derive(serde::Deserialize, Default)]
+pub struct ScanArgs {
+    /// Only these rules; all when absent.
+    pub rule_ids: Option<Vec<String>>,
+    #[serde(default)]
+    pub include_leftovers: bool,
+    #[serde(default)]
+    pub include_large_files: bool,
+    /// "safe" for quick clean.
+    pub max_risk: Option<trufi_core::model::Risk>,
+}
+
+#[tauri::command]
+pub async fn scan(app: AppHandle, args: Option<ScanArgs>) -> CmdResult<ScanSummary> {
+    let args = args.unwrap_or_default();
+    let emitter = app.clone();
+    blocking(&app, move |state| {
+        let _busy = BusyGuard::acquire(state)?;
+        let rules: Vec<Rule> = {
+            let set = state.rules.read().unwrap();
+            match &args.rule_ids {
+                Some(ids) => set.rules.iter().filter(|r| ids.contains(&r.id)).cloned().collect(),
+                None => set.rules.clone(),
+            }
+        };
+        let scanner = Scanner::new(state.platform.as_ref());
+        let options = ScanOptions {
+            include_leftovers: args.include_leftovers,
+            include_large_files: args.include_large_files,
+            max_risk: args.max_risk,
+        };
+        let result = scanner.scan(&rules, options, &|event| {
+            let _ = emitter.emit("scan-event", event);
+        });
+        let summary = result.summary();
+        *state.last_scan.lock().unwrap() = Some(Arc::new(result));
+        Ok(summary)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn clean(app: AppHandle, requests: Vec<CleanRequest>) -> CmdResult<CleanReport> {
+    blocking(&app, move |state| {
+        let _busy = BusyGuard::acquire(state)?;
+        let scan = state
+            .last_scan
+            .lock()
+            .unwrap()
+            .clone()
+            .ok_or_else(|| fail("no_scan", "scan first"))?;
+        let scanner = Scanner::new(state.platform.as_ref());
+        let report = run_clean(&scan, &requests, state.platform.as_ref(), scanner.guard());
+        // The scan no longer reflects the disk; the UI re-scans when needed.
+        *state.last_scan.lock().unwrap() = None;
+        Ok(report)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn startup_items(app: AppHandle) -> CmdResult<Vec<StartupItem>> {
+    blocking(&app, |state| {
+        let items = state.platform.startup_items()?;
+        *state.startup_enabled.lock().unwrap() = Some(items.iter().filter(|i| i.enabled).count());
+        Ok(items)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn set_startup_enabled(app: AppHandle, id: String, enabled: bool) -> CmdResult<()> {
+    blocking(&app, move |state| {
+        state.platform.set_startup_enabled(&id, enabled)?;
+        *state.startup_enabled.lock().unwrap() = None;
+        Ok(())
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn installed_apps(app: AppHandle) -> CmdResult<Vec<InstalledApp>> {
+    blocking(&app, |state| Ok(state.platform.installed_apps()?)).await
+}
+
+#[tauri::command]
+pub async fn uninstall_app(app: AppHandle, id: String) -> CmdResult<()> {
+    blocking(&app, move |state| Ok(state.platform.uninstall_app(&id)?)).await
+}
+
+#[tauri::command]
+pub fn relaunch_elevated(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    state.platform.relaunch_elevated()?;
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn reveal_path(path: PathBuf) -> CmdResult<()> {
+    tauri_plugin_opener::reveal_item_in_dir(&path).map_err(|e| fail("failed", e.to_string()))
+}

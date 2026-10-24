@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = ["crates/trufi-core", "crates/trufi-platform", "apps/desktop/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Trufi"]
+
+[workspace.dependencies]
+trufi-core = { path = "crates/trufi-core" }
+trufi-platform = { path = "crates/trufi-platform" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+thiserror = "2"
+walkdir = "2.5"
+glob = "0.3"
+globset = "0.4"
+sysinfo = "0.39"
+rayon = "1"
+log = "0.4"
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "s"
