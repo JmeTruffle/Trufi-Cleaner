@@ -2,7 +2,9 @@
 //! Factors carry ids and numbers, not text: wording lives in the UI's
 //! translations.
 
+use crate::drivers::DriverHealth;
 use crate::monitor::SystemSnapshot;
+use crate::updates::UpdateHealth;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
@@ -12,6 +14,10 @@ pub struct HealthInput {
     /// Bytes the last scan found, if a scan has run.
     pub junk_bytes: Option<u64>,
     pub startup_enabled: Option<usize>,
+    /// Windows Update state, once it has been checked.
+    pub updates: Option<UpdateHealth>,
+    /// Driver state, once drivers have been listed.
+    pub drivers: Option<DriverHealth>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,6 +79,24 @@ pub fn evaluate(s: &SystemSnapshot, input: &HealthInput) -> Health {
     }
     let days = s.uptime_secs as f64 / 86400.0;
     push("uptime_long", tier(days, &[(14.0, 8), (7.0, 4)]), days);
+
+    if let Some(u) = input.updates {
+        if let Some(build) = u.unsupported_build {
+            push("os_unsupported", 15, build as f64);
+        }
+        let pending = u.pending as f64;
+        let penalty = if u.pending_security > 0 { 12 } else { tier(pending, &[(1.0, 6)]) };
+        push("updates_pending", penalty, pending);
+        push("updates_restart", if u.reboot_required { 5 } else { 0 }, 0.0);
+        if let Some(d) = u.days_since_install {
+            push("updates_stale", tier(d as f64, &[(60.0, 8), (35.0, 4)]), d as f64);
+        }
+    }
+    if let Some(d) = input.drivers {
+        push("driver_problems", tier(d.problems as f64, &[(3.0, 20), (1.0, 12)]), d.problems as f64);
+        push("driver_unsigned", tier(d.unsigned as f64, &[(1.0, 6)]), d.unsigned as f64);
+        push("driver_updates", tier(d.updates as f64, &[(1.0, 4)]), d.updates as f64);
+    }
 
     let penalty: u32 = factors.iter().map(|f| f.penalty as u32).sum();
     let score = 100u32.saturating_sub(penalty).max(5) as u8;
@@ -136,9 +160,37 @@ pub(crate) mod tests {
 
     #[test]
     fn stressed_machine_is_poor() {
-        let input = HealthInput { cpu_avg_percent: 95.0, junk_bytes: Some(12 * GB), startup_enabled: Some(20) };
+        let input = HealthInput {
+            cpu_avg_percent: 95.0,
+            junk_bytes: Some(12 * GB),
+            startup_enabled: Some(20),
+            ..Default::default()
+        };
         let h = evaluate(&snapshot(95, 97, 20), &input);
         assert_eq!(h.level, "poor");
         assert_eq!(h.factors[0].id, "system_disk_full");
+    }
+
+    #[test]
+    fn updates_and_drivers_lower_the_score() {
+        let input = HealthInput {
+            updates: Some(UpdateHealth { pending: 3, pending_security: 1, reboot_required: true, ..Default::default() }),
+            drivers: Some(DriverHealth { problems: 1, unsigned: 0, updates: 2 }),
+            ..Default::default()
+        };
+        let h = evaluate(&snapshot(40, 50, 1), &input);
+        assert_eq!(h.score, 100 - 12 - 5 - 12 - 4);
+        let ids: Vec<&str> = h.factors.iter().map(|f| f.id.as_str()).collect();
+        assert_eq!(ids, ["updates_pending", "driver_problems", "updates_restart", "driver_updates"]);
+    }
+
+    #[test]
+    fn up_to_date_system_has_no_update_factors() {
+        let input = HealthInput {
+            updates: Some(UpdateHealth { days_since_install: Some(10), ..Default::default() }),
+            drivers: Some(DriverHealth::default()),
+            ..Default::default()
+        };
+        assert_eq!(evaluate(&snapshot(40, 50, 1), &input).score, 100);
     }
 }

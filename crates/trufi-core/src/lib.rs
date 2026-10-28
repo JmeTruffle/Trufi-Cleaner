@@ -9,6 +9,7 @@
 
 pub mod advisor;
 pub mod cleaner;
+pub mod drivers;
 pub mod error;
 pub mod health;
 pub mod large_files;
@@ -19,6 +20,7 @@ pub mod platform;
 pub mod rules;
 pub mod safety;
 pub mod scanner;
+pub mod updates;
 pub mod util;
 
 pub use error::{Error, Result};

@@ -22,6 +22,10 @@ pub enum AdviceAction {
     Startup,
     Processes,
     Restart,
+    /// Opens Windows Update.
+    Updates,
+    /// Opens the drivers page.
+    Drivers,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +52,13 @@ pub fn advise(s: &SystemSnapshot, health: &Health, scanned: bool) -> Vec<Advice>
             "junk" => (Severity::Warning, Some(AdviceAction::Clean)),
             "startup_many" => (Severity::Info, Some(AdviceAction::Startup)),
             "uptime_long" => (Severity::Info, Some(AdviceAction::Restart)),
+            "os_unsupported" => (Severity::Critical, Some(AdviceAction::Updates)),
+            "updates_pending" if f.penalty >= 12 => (Severity::Critical, Some(AdviceAction::Updates)),
+            "updates_pending" | "updates_stale" => (Severity::Warning, Some(AdviceAction::Updates)),
+            "updates_restart" => (Severity::Warning, Some(AdviceAction::Restart)),
+            "driver_problems" if f.penalty >= 20 => (Severity::Critical, Some(AdviceAction::Drivers)),
+            "driver_problems" => (Severity::Warning, Some(AdviceAction::Drivers)),
+            "driver_unsigned" | "driver_updates" => (Severity::Info, Some(AdviceAction::Drivers)),
             _ => (Severity::Info, None),
         };
         let subject = match f.id.as_str() {

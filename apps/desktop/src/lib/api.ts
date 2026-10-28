@@ -3,8 +3,8 @@
 // be designed and tested without Windows.
 
 import type {
-  CleanReport, CleanRequest, HealthReport, InstalledApp, ScanArgs, ScanEvent, ScanSummary,
-  StartupItem, SystemInfo, SystemSnapshot,
+  CleanReport, CleanRequest, DriverInfo, HealthReport, InstalledApp, ScanArgs, ScanEvent, ScanSummary,
+  StartupItem, SystemInfo, SystemPage, SystemSnapshot, UpdateStatus,
 } from "./types";
 
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -13,6 +13,9 @@ type Commands = {
   system_info: [undefined, SystemInfo];
   snapshot: [undefined, SystemSnapshot];
   health: [undefined, HealthReport];
+  update_status: [{ refresh: boolean }, UpdateStatus];
+  drivers: [{ refresh: boolean }, DriverInfo[]];
+  open_system_page: [{ page: SystemPage }, void];
   scan: [{ args: ScanArgs }, ScanSummary];
   clean: [{ requests: CleanRequest[] }, CleanReport];
   startup_items: [undefined, StartupItem[]];
@@ -36,6 +39,9 @@ export const api = {
   systemInfo: () => call("system_info"),
   snapshot: () => call("snapshot"),
   health: () => call("health"),
+  updateStatus: (refresh = false) => call("update_status", { refresh }),
+  drivers: (refresh = false) => call("drivers", { refresh }),
+  openSystemPage: (page: SystemPage) => call("open_system_page", { page }),
   scan: (args: ScanArgs) => call("scan", { args }),
   clean: (requests: CleanRequest[]) => call("clean", { requests }),
   startupItems: () => call("startup_items"),

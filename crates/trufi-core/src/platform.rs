@@ -3,7 +3,9 @@
 //! Adding macOS (or Linux) support means implementing this trait and
 //! shipping a rule pack for it; nothing else in the core changes.
 
+use crate::drivers::DriverInfo;
 use crate::model::{InstalledApp, StartupItem};
+use crate::updates::UpdateStatus;
 use crate::Result;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -25,6 +27,16 @@ impl OsFamily {
             OsFamily::Linux => "linux",
         }
     }
+}
+
+/// System settings pages the UI can send the user to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SystemPage {
+    WindowsUpdate,
+    /// Where Windows Update keeps optional driver updates.
+    OptionalUpdates,
+    DeviceManager,
 }
 
 /// Where leftover detection should look and what it must never touch.
@@ -90,4 +102,19 @@ pub trait Platform: Send + Sync {
     fn trash_info(&self) -> Result<Option<(u64, u64)>>;
 
     fn empty_trash(&self) -> Result<()>;
+
+    /// Installed version and what Windows Update has waiting. Slow: it
+    /// asks the update service, which may go online.
+    fn update_status(&self) -> Result<UpdateStatus> {
+        Err(crate::Error::Unsupported("update_status"))
+    }
+
+    /// Device drivers, plus devices that report a problem.
+    fn drivers(&self) -> Result<Vec<DriverInfo>> {
+        Err(crate::Error::Unsupported("drivers"))
+    }
+
+    fn open_system_page(&self, _page: SystemPage) -> Result<()> {
+        Err(crate::Error::Unsupported("open_system_page"))
+    }
 }

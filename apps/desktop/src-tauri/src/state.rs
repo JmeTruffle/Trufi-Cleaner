@@ -2,10 +2,12 @@ use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, RwLock};
+use trufi_core::drivers::DriverInfo;
 use trufi_core::monitor::{Monitor, SystemSnapshot};
 use trufi_core::platform::Platform;
 use trufi_core::rules::RuleSet;
 use trufi_core::scanner::ScanResult;
+use trufi_core::updates::UpdateStatus;
 
 /// About one minute of samples at the UI's polling rate.
 pub const CPU_HISTORY: usize = 40;
@@ -20,6 +22,10 @@ pub struct AppState {
     pub last_snapshot: Mutex<Option<SystemSnapshot>>,
     pub last_scan: Mutex<Option<Arc<ScanResult>>>,
     pub startup_enabled: Mutex<Option<usize>>,
+    /// Last Windows Update check; the check is slow, so the UI asks for a
+    /// fresh one only on start and on demand.
+    pub updates: Mutex<Option<UpdateStatus>>,
+    pub drivers: Mutex<Option<Vec<DriverInfo>>>,
     pub busy: AtomicBool,
 }
 
@@ -52,6 +58,8 @@ impl AppState {
             last_snapshot: Mutex::new(None),
             last_scan: Mutex::new(None),
             startup_enabled: Mutex::new(None),
+            updates: Mutex::new(None),
+            drivers: Mutex::new(None),
             busy: AtomicBool::new(false),
         }
     }
