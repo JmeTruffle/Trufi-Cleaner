@@ -34,40 +34,45 @@
 
 <style>
   .sidebar {
-    width: 208px;
+    width: 220px;
     flex: none;
-    padding: 16px 12px;
+    margin: 4px 0 14px 14px;
+    padding: 14px 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(18px);
   }
   button {
     display: flex;
     align-items: center;
     gap: 12px;
-    height: 40px;
-    padding: 0 12px;
-    border-radius: 10px;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
     color: var(--text-2);
-    font-weight: 550;
+    font-weight: 600;
+    font-size: 14.5px;
+    transition: background 0.15s, color 0.15s;
     text-align: left;
     position: relative;
   }
-  button:hover { background: var(--surface-2); color: var(--text); }
-  button.active { background: var(--accent-soft); color: var(--accent); }
+  button:hover { background: var(--surface); color: var(--text); }
+  button.active { background: #fff; color: var(--ink); box-shadow: var(--shadow); }
   .pulse {
     margin-left: auto;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent-2);
     animation: pulse 1.2s ease-in-out infinite;
   }
   @keyframes pulse { 50% { opacity: 0.3; } }
   .spacer { flex: 1; }
-  .sys { padding: 10px 12px; font-size: 12px; line-height: 1.5; }
-  .host { font-weight: 600; color: var(--text-2); }
+  .sys { padding: 12px 16px; border-radius: 18px; background: var(--surface-2); font-size: 12px; line-height: 1.5; }
+  .host { font-weight: 700; color: var(--text); }
   .admin { display: flex; gap: 5px; align-items: center; color: var(--accent); margin-top: 4px; font-weight: 600; }
 </style>

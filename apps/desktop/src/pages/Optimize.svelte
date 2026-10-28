@@ -75,10 +75,10 @@
       <h1>Оптимизация</h1>
       <p>Автозагрузка, установленные программы и тяжёлые процессы</p>
     </div>
-    <div class="tabs">
-      <button class:on={app.optimizeTab === "startup"} onclick={() => (app.optimizeTab = "startup")}>Автозагрузка</button>
-      <button class:on={app.optimizeTab === "apps"} onclick={() => (app.optimizeTab = "apps")}>Программы</button>
-      <button class:on={app.optimizeTab === "processes"} onclick={() => (app.optimizeTab = "processes")}>Процессы</button>
+    <div class="chips">
+      <button class="chip" class:on={app.optimizeTab === "startup"} onclick={() => (app.optimizeTab = "startup")}>Автозагрузка</button>
+      <button class="chip" class:on={app.optimizeTab === "apps"} onclick={() => (app.optimizeTab = "apps")}>Программы</button>
+      <button class="chip" class:on={app.optimizeTab === "processes"} onclick={() => (app.optimizeTab = "processes")}>Процессы</button>
     </div>
   </div>
 
@@ -187,26 +187,24 @@
 {/if}
 
 <style>
-  .tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
-  .tabs button { padding: 6px 14px; border-radius: 8px; font-weight: 600; color: var(--text-2); }
-  .tabs button.on { background: var(--accent-soft); color: var(--accent); }
-  .note { display: flex; gap: 8px; align-items: center; padding: 12px 16px; color: var(--text-2); }
-  .list { padding: 0; }
-  .list-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .note { display: flex; gap: 8px; align-items: center; padding: 12px 18px; color: var(--text-2); }
+  .list { padding: 0 0 6px; }
+  .list-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid var(--divider); }
   .small { font-size: 12px; }
-  .row { display: flex; align-items: center; gap: 14px; padding: 11px 20px; border-bottom: 1px solid var(--border); }
+  .row { display: flex; align-items: center; gap: 14px; padding: 13px 0; margin: 0 22px; border-bottom: 1px solid var(--divider); }
   .row:last-child { border-bottom: 0; }
   .row-main { flex: 1; min-width: 0; }
-  .row-title { display: flex; gap: 8px; align-items: center; font-weight: 550; }
+  .row-title { display: flex; gap: 8px; align-items: center; font-weight: 650; font-size: 15px; }
   .cmd { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
   .empty { padding: 32px; text-align: center; }
-  .search { display: flex; align-items: center; gap: 8px; color: var(--text-3); flex: 1; max-width: 360px; }
+  .search { display: flex; align-items: center; gap: 8px; color: var(--text-2); flex: 1; max-width: 380px; height: 40px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
   .search input { border: 0; outline: 0; background: none; flex: 1; color: var(--text); }
-  .procs { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 16px 20px 20px; }
-  .procs h3 { margin: 0 0 10px; font-size: 13px; color: var(--text-2); }
+  .search input::placeholder { color: var(--text-3); }
+  .procs { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 18px 22px 18px; }
+  .procs h3 { margin: 0 0 10px; font-size: 17px; font-weight: 750; }
   .proc { display: grid; grid-template-columns: 1fr 90px 70px; gap: 12px; align-items: center; padding: 6px 0; }
   .pname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pbar { height: 6px; border-radius: 6px; background: var(--track); overflow: hidden; }
+  .pbar { height: 8px; border-radius: 8px; background: var(--track); overflow: hidden; }
   .pbar i { display: block; height: 100%; border-radius: 6px; }
   .proc .num { text-align: right; }
 </style>

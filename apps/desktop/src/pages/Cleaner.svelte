@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from "../components/Icon.svelte";
+  import Mascot from "../components/Mascot.svelte";
   import Modal from "../components/Modal.svelte";
   import { api } from "../lib/api";
   import { bytes, count, plural } from "../lib/format";
@@ -115,7 +116,7 @@
 
   {#if app.scanning}
     <section class="card state">
-      <div class="spinner"></div>
+      <Mascot mood="busy" color="#5ce8d0" size={120} spin />
       <h2>Сканирование…</h2>
       <p class="muted current">{app.scanProgress.current || "Подготовка"}</p>
       <div class="progress"><i style="width:{progress}%"></i></div>
@@ -123,14 +124,14 @@
     </section>
   {:else if app.cleaning}
     <section class="card state">
-      <div class="spinner"></div>
+      <Mascot mood="busy" color="#5ce8d0" size={120} spin />
       <h2>Очищаем…</h2>
       <p class="muted">Удаляем только отмеченное. Это займёт несколько секунд.</p>
     </section>
   {:else if app.lastClean}
     {@const r = app.lastClean}
     <section class="card state done">
-      <div class="done-icon"><Icon name="check" size={28} stroke={2.4} /></div>
+      <Mascot mood="happy" color="#5ee6a0" size={130} />
       <h2>Освобождено {bytes(r.freed_bytes)}</h2>
       <p class="muted">
         Удалено {count(r.removed_files)} {plural(r.removed_files, "объект", "объекта", "объектов")}.
@@ -143,7 +144,7 @@
     </section>
   {:else if !app.scan}
     <section class="card state">
-      <div class="hero-icon"><Icon name="cleaner" size={30} /></div>
+      <Mascot mood="calm" color="#5ce8d0" size={130} />
       <h2>Найдём, что можно удалить</h2>
       <p class="muted">Сканирование ничего не удаляет. Вы увидите список и сами решите, что очистить.</p>
       <div class="options">
@@ -171,9 +172,10 @@
   {:else}
     <div class="summary">
       <div>
-        <div class="total num">{bytes(app.scan.total_bytes)}</div>
+        <div class="eyebrow">Можно освободить</div>
+        <div class="total num display">{bytes(app.scan.total_bytes)}</div>
         <div class="muted">
-          можно освободить · {app.scan.findings.length} {plural(app.scan.findings.length, "пункт", "пункта", "пунктов")}
+          {app.scan.findings.length} {plural(app.scan.findings.length, "пункт", "пункта", "пунктов")}
           · проверено правил: {app.scan.rules_checked}
         </div>
       </div>
@@ -284,47 +286,57 @@
 {/if}
 
 <style>
-  .error { display: flex; gap: 8px; align-items: center; color: var(--bad); background: var(--bad-soft); border-color: transparent; padding: 12px 16px; }
+  .error { display: flex; gap: 8px; align-items: center; color: var(--bad); background: var(--bad-soft); border-color: transparent; padding: 12px 18px; }
 
-  .state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 24px; gap: 6px; }
-  .state h2 { margin: 10px 0 0; font-size: 20px; }
-  .state p { margin: 0 0 8px; max-width: 520px; }
-  .hero-icon, .done-icon { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
-  .done-icon { background: var(--good-soft); color: var(--good); }
-  .options { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 16px; text-align: left; }
-  .options label { display: flex; gap: 10px; align-items: center; cursor: pointer; }
+  .state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 24px 44px; gap: 6px; }
+  .state h2 { margin: 14px 0 2px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+  .state p { margin: 0 0 8px; max-width: 520px; font-size: 15px; }
+  .options { display: flex; flex-direction: column; gap: 12px; margin: 10px 0 18px; text-align: left; }
+  .options label { display: flex; gap: 10px; align-items: center; cursor: pointer; font-weight: 550; }
+  .state .btn-primary { height: 46px; padding: 0 28px; font-size: 15px; }
   .current { min-height: 21px; }
-  .progress { width: min(420px, 100%); height: 6px; border-radius: 6px; background: var(--track); overflow: hidden; margin: 6px 0; }
-  .progress i { display: block; height: 100%; background: var(--accent); transition: width 0.2s; }
-  .spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--track); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress { width: min(440px, 100%); height: 10px; border-radius: 10px; background: var(--track); overflow: hidden; margin: 8px 0; }
+  .progress i { display: block; height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.2s; }
 
   .summary { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 0 4px; }
-  .total { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .eyebrow { font-weight: 650; color: var(--text-2); font-size: 15px; }
+  .total { font-size: 64px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; }
   .legend { display: flex; gap: 6px; }
 
-  .group { padding: 6px 0; }
-  .group-head { display: flex; align-items: center; gap: 12px; padding: 10px 20px; }
-  .group-head h3 { margin: 0; font-size: 14px; flex: 1; }
+  .group { padding: 8px 0; }
+  .group-head { display: flex; align-items: center; gap: 12px; padding: 12px 22px; }
+  .group-head h3 { margin: 0; font-size: 17px; font-weight: 750; flex: 1; }
+  .group-head .num { font-weight: 700; color: var(--text); }
 
-  .rule { border-top: 1px solid var(--border); }
-  .rule-row { display: flex; align-items: center; gap: 12px; padding: 0 20px; }
-  .rule-main { flex: 1; display: flex; align-items: center; gap: 8px; min-height: 46px; text-align: left; min-width: 0; }
+  .rule { border-top: 1px solid var(--divider); margin: 0 22px; }
+  .rule-row { display: flex; align-items: center; gap: 12px; }
+  .rule-main { flex: 1; display: flex; align-items: center; gap: 8px; min-height: 50px; text-align: left; min-width: 0; }
   .chev { color: var(--text-3); transition: transform 0.15s; display: grid; }
   .open .chev { transform: rotate(90deg); }
-  .rule-name { flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rule-name { flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 550; }
   .badges { display: flex; gap: 6px; flex: 1; min-width: 0; overflow: hidden; }
-  .size { font-weight: 600; white-space: nowrap; }
+  .size { font-weight: 700; white-space: nowrap; }
 
-  .details { padding: 0 20px 14px 70px; font-size: 13px; }
+  .details { padding: 0 0 14px 54px; font-size: 13px; }
   .details p { margin: 0 0 8px; }
   .entries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
   .entries li { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
   .path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; color: var(--text-2); }
-  .icon-btn { color: var(--text-3); display: grid; padding: 4px; border-radius: 6px; }
-  .icon-btn:hover { color: var(--text); background: var(--track); }
+  .icon-btn { color: var(--text-3); display: grid; padding: 5px; border-radius: 999px; }
+  .icon-btn:hover { color: var(--text); background: var(--surface-hover); }
 
   .spacer { flex: 1; }
-  .actionbar { position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; box-shadow: 0 -8px 24px rgba(16, 24, 40, 0.06); }
-  .sel { font-size: 18px; font-weight: 700; }
+  .actionbar {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px 12px 26px;
+    border-radius: 999px;
+    background: rgba(62, 88, 175, 0.92);
+    box-shadow: 0 12px 32px rgba(15, 25, 80, 0.3);
+  }
+  .sel { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  .actionbar .btn-primary { height: 46px; padding: 0 26px; font-size: 15px; }
 </style>

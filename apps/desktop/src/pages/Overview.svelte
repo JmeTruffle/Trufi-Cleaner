@@ -1,7 +1,7 @@
 <script lang="ts">
   import AreaChart from "../components/AreaChart.svelte";
-  import HealthRing from "../components/HealthRing.svelte";
-  import Icon from "../components/Icon.svelte";
+    import Icon from "../components/Icon.svelte";
+  import Mascot from "../components/Mascot.svelte";
   import { bytes, count, duration, percent, rate } from "../lib/format";
   import { adviceActionLabel, adviceText, factorText, healthLevel } from "../lib/i18n";
   import { app } from "../lib/store.svelte";
@@ -38,55 +38,62 @@
     await app.runScan(true);
   }
 
+  const mascotColor = { good: "#5ee6a0", fair: "#ffd23f", poor: "#ff9a4d" };
+  const mascotLine = { good: "Всё блестит!", fair: "Пора немного прибраться", poor: "Помогите, тут завал!" };
+
   const diskColor = (used: number) => (used >= 90 ? "var(--bad)" : used >= 80 ? "var(--warn)" : "var(--accent)");
 </script>
 
 <div class="page">
-  <div class="page-head">
-    <div>
-      <h1>Обзор системы</h1>
-      <p>Нагрузка в реальном времени и состояние компьютера</p>
-    </div>
-  </div>
+  <section class="hero">
+    {#if h}
+      {@const lvl = h.health.level}
+      <div class="hero-text">
+        <div class="eyebrow">Состояние компьютера</div>
+        <div class="score num display">{h.health.score}<span class="of">/100</span></div>
+        <h1>{healthLevel[lvl]}</h1>
+        <div class="chips">
+          {#each h.health.factors.slice(0, 3) as f}
+            <span class="chip chip-small">{factorText(f)}</span>
+          {:else}
+            <span class="chip chip-small">Нагрузка в норме, места достаточно</span>
+          {/each}
+        </div>
+        <button class="btn btn-primary hero-btn" onclick={quickClean} disabled={app.scanning || app.cleaning}>
+          <Icon name="sparkle" size={16} /> Быстрая очистка
+        </button>
+      </div>
+      <div class="hero-art">
+        <div class="bubble">{mascotLine[lvl]}</div>
+        <Mascot mood={lvl === "good" ? "happy" : lvl === "fair" ? "calm" : "worried"} color={mascotColor[lvl]} size={190} />
+      </div>
+    {:else}
+      <div class="placeholder">Оцениваем состояние…</div>
+    {/if}
+  </section>
 
   <div class="grid top">
-    <section class="card health">
-      {#if h}
-        <HealthRing score={h.health.score} level={h.health.level} size={124} />
-        <div class="health-text">
-          <div class="level">{healthLevel[h.health.level]}</div>
-          {#if h.health.factors.length}
-            <ul>
-              {#each h.health.factors.slice(0, 3) as f}
-                <li>{factorText(f)}</li>
-              {/each}
-            </ul>
-          {:else}
-            <p class="muted">Нагрузка в норме, места достаточно.</p>
-          {/if}
-          <button class="btn btn-primary" onclick={quickClean} disabled={app.scanning || app.cleaning}>
-            <Icon name="sparkle" size={16} /> Быстрая очистка
-          </button>
-        </div>
-      {:else}
-        <div class="placeholder">Оцениваем состояние…</div>
-      {/if}
-    </section>
-
     <section class="card metric">
       <div class="card-title">Процессор <span class="faint">{s?.cpu_cores ?? "–"} потоков</span></div>
-      <div class="big num" style="color:var(--cpu)">{s ? percent(s.cpu_percent) : "–"}</div>
+      <div class="big num display">{s ? percent(s.cpu_percent) : "–"}</div>
       <AreaChart values={app.cpuHistory} color="var(--cpu)" />
       <div class="sub faint" title={s?.cpu_brand}>{s?.cpu_brand ?? ""}</div>
     </section>
 
     <section class="card metric">
       <div class="card-title">Память <span class="faint">{s ? bytes(s.memory_total, 0) : ""}</span></div>
-      <div class="big num" style="color:var(--mem)">{percent(memPct)}</div>
+      <div class="big num display">{percent(memPct)}</div>
       <AreaChart values={app.memHistory} color="var(--mem)" />
       <div class="sub faint">
         {#if s}Занято {bytes(s.memory_used)}{#if s.swap_total} · подкачка {bytes(s.swap_used)}{/if}{/if}
       </div>
+    </section>
+
+    <section class="card metric">
+      <div class="card-title">Сеть <span class="faint">{s ? `${count(s.process_count)} процессов` : ""}</span></div>
+      <div class="big num display net">↓ {rate(s?.net_rx_bps ?? 0)}</div>
+      <AreaChart values={app.netHistory} max={1} color="var(--net)" />
+      <div class="sub faint">↑ {rate(s?.net_tx_bps ?? 0)} · без перезагрузки {s ? duration(s.uptime_secs) : "–"}</div>
     </section>
   </div>
 
@@ -137,13 +144,13 @@
     </section>
   </div>
 
-  <div class="grid bottom">
+  <div class="grid">
     <section class="card">
       <div class="card-title">
         Активные программы
-        <div class="seg">
-          <button class:on={procTab === "cpu"} onclick={() => (procTab = "cpu")}>Процессор</button>
-          <button class:on={procTab === "memory"} onclick={() => (procTab = "memory")}>Память</button>
+        <div class="chips">
+          <button class="chip chip-small" class:on={procTab === "cpu"} onclick={() => (procTab = "cpu")}>Процессор</button>
+          <button class="chip chip-small" class:on={procTab === "memory"} onclick={() => (procTab = "memory")}>Память</button>
         </div>
       </div>
       <table>
@@ -159,67 +166,72 @@
       </table>
     </section>
 
-    <section class="card facts">
-      <div class="card-title">Сейчас</div>
-      <div class="fact"><span class="muted">Сеть</span><span class="num">↓ {rate(s?.net_rx_bps ?? 0)} · ↑ {rate(s?.net_tx_bps ?? 0)}</span></div>
-      <AreaChart values={app.netHistory} max={1} color="var(--net)" height={40} />
-      <div class="fact"><span class="muted">Без перезагрузки</span><span class="num">{s ? duration(s.uptime_secs) : "–"}</span></div>
-      <div class="fact"><span class="muted">Процессов</span><span class="num">{s ? count(s.process_count) : "–"}</span></div>
-    </section>
   </div>
 </div>
 
 <style>
-  .grid { display: grid; gap: 16px; }
-  .top { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .grid { display: grid; gap: 18px; }
+  .top { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
-  .bottom { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
 
-  .health { display: flex; align-items: center; gap: 20px; }
-  .health-text { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; min-width: 0; }
-  .level { font-size: 16px; font-weight: 650; line-height: 1.3; }
-  .health ul { margin: 0 0 6px; padding-left: 16px; color: var(--text-2); font-size: 13px; }
-  .health p { margin: 0 0 6px; }
+  .hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 4px 4px 0; min-height: 250px; }
+  .hero-text { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+  .eyebrow { font-weight: 650; color: var(--text-2); font-size: 15px; }
+  .score { font-size: 96px; font-weight: 800; line-height: 0.95; letter-spacing: -0.04em; }
+  .of { font-size: 28px; font-weight: 700; color: var(--text-3); letter-spacing: 0; margin-left: 6px; }
+  .hero h1 { margin: 2px 0 6px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+  .hero-btn { margin-top: 10px; height: 46px; padding: 0 24px; font-size: 15px; }
+  .hero-art { position: relative; flex: none; padding: 40px 24px 0 0; }
+  .bubble {
+    position: absolute;
+    top: 0;
+    right: 150px;
+    max-width: 210px;
+    padding: 10px 16px;
+    border-radius: 22px 22px 6px 22px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(12px);
+    font-weight: 650;
+    white-space: nowrap;
+    z-index: 1;
+  }
   .placeholder { color: var(--text-3); padding: 40px 0; }
 
   .metric { display: flex; flex-direction: column; }
-  .big { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: -4px 0 8px; }
-  .sub { font-size: 12px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .big { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin: -2px 0 10px; }
+  .net { font-size: 30px; line-height: 1.4; }
+  .sub { font-size: 12.5px; margin-top: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .disks { display: flex; flex-direction: column; gap: 14px; }
-  .disk-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 7px; }
+  .disks { display: flex; flex-direction: column; gap: 16px; }
+  .disk-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
   .disk-name { display: flex; gap: 8px; align-items: center; color: var(--text-2); min-width: 0; overflow: hidden; white-space: nowrap; }
   .disk-name :global(svg) { flex: none; }
   .disk-name .faint { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .disk-head > .num { white-space: nowrap; flex: none; }
-  .disk-name b { color: var(--text); }
-  .free { color: var(--text); font-weight: 600; }
-  .bar { height: 8px; border-radius: 8px; background: var(--track); overflow: hidden; }
-  .bar i { display: block; height: 100%; border-radius: 8px; transition: width 0.6s; }
+  .disk-name b { color: var(--text); font-size: 15px; }
+  .free { color: var(--text); font-weight: 700; }
+  .bar { height: 10px; border-radius: 10px; background: var(--track); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 10px; transition: width 0.6s; }
 
-  .advice { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-  .advice li { display: flex; gap: 12px; align-items: flex-start; }
-  .advice .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex: none; background: var(--text-3); }
+  .advice { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .advice li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--divider); }
+  .advice li:first-child { border-top: 0; padding-top: 2px; }
+  .advice .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex: none; background: var(--text-3); }
   .advice .warning .dot { background: var(--warn); }
   .advice .critical .dot { background: var(--bad); }
   .advice-text { flex: 1; min-width: 0; font-size: 13px; }
-  .advice-title { font-weight: 600; font-size: 14px; }
-  .empty { display: flex; gap: 8px; align-items: center; color: var(--good); }
+  .advice-title { font-weight: 700; font-size: 15px; }
+  .empty { display: flex; gap: 8px; align-items: center; color: var(--good); font-weight: 600; }
 
-  .seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
-  .seg button { padding: 3px 10px; border-radius: 6px; font-size: 12px; color: var(--text-2); font-weight: 600; }
-  .seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
   table { width: 100%; border-collapse: collapse; }
-  td { padding: 7px 0; border-top: 1px solid var(--border); }
+  td { padding: 9px 0; border-top: 1px solid var(--divider); }
   tr:first-child td { border-top: 0; }
-  .pname { max-width: 0; width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pname { max-width: 0; width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 550; }
   .right { text-align: right; padding-left: 12px; }
 
-  .facts { display: flex; flex-direction: column; gap: 10px; }
-  .fact { display: flex; justify-content: space-between; gap: 12px; }
-
-  @media (max-width: 1100px) {
+  @media (max-width: 1000px) {
     .top { grid-template-columns: 1fr 1fr; }
-    .top .health { grid-column: 1 / -1; }
+    .hero-art { display: none; }
   }
 </style>
