@@ -16,14 +16,15 @@
   .backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(10, 12, 16, 0.45);
+    background: rgba(20, 30, 80, 0.4);
+    backdrop-filter: blur(4px);
     display: grid;
     place-items: center;
     z-index: 50;
     animation: fade 0.12s ease;
   }
-  .modal { width: min(460px, calc(100vw - 32px)); padding: 22px 24px; }
-  h2 { margin: 0 0 10px; font-size: 17px; }
+  .modal { width: min(480px, calc(100vw - 32px)); padding: 26px 28px; background: rgba(70, 100, 190, 0.92); }
+  h2 { margin: 0 0 10px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
   .body { color: var(--text-2); }
   .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
   @keyframes fade { from { opacity: 0; } }

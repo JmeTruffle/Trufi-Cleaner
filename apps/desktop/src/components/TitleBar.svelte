@@ -10,7 +10,7 @@
 
 <header class="titlebar" data-tauri-drag-region>
   <div class="brand" data-tauri-drag-region>
-    <Logo size={18} />
+    <Logo size={20} />
     <span data-tauri-drag-region>Trufi Cleaner</span>
   </div>
   {#if controls}
@@ -28,18 +28,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-left: 14px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    padding-left: 16px;
     flex: none;
   }
   .brand {
     display: flex;
     align-items: center;
     gap: 9px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
   }
   .controls { display: flex; height: 100%; }
   .controls button {
@@ -49,6 +47,6 @@
     place-items: center;
     color: var(--text-2);
   }
-  .controls button:hover { background: var(--track); color: var(--text); }
+  .controls button:hover { background: var(--surface-hover); color: var(--text); }
   .controls .close:hover { background: #e81123; color: #fff; }
 </style>

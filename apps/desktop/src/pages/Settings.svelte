@@ -93,6 +93,6 @@
   .row { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
   p { margin: 0 0 6px; }
   .err { color: var(--bad); }
-  code { background: var(--track); padding: 1px 5px; border-radius: 5px; }
+  code { background: var(--track); padding: 1px 6px; border-radius: 6px; }
   .link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; text-align: left; }
 </style>

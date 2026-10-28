@@ -28,9 +28,12 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 12px 8px 16px;
-    background: var(--accent-soft);
-    border-bottom: 1px solid var(--border);
+    margin: 0 14px 10px;
+    padding: 8px 10px 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(18px);
     flex: none;
   }
   .dot { color: var(--accent); display: grid; }

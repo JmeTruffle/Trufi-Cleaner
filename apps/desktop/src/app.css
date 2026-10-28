@@ -1,26 +1,36 @@
+@import "@fontsource-variable/onest";
+
 :root {
-  /* Dark only for now; a light palette can come back as another token set. */
-  --bg: #0f1115;
-  --surface: #171a20;
-  --surface-2: #1d2128;
-  --border: #262a33;
-  --text: #eceef2;
-  --text-2: #a2a9b5;
-  --text-3: #6f7682;
-  --accent: #2cc5b1;
-  --accent-soft: #15322f;
-  --accent-text: #06201c;
-  --cpu: #2cc5b1;
-  --mem: #8f88ff;
-  --net: #f0b04a;
-  --good: #3ccf7a;
-  --warn: #f0b04a;
-  --bad: #f06a6a;
-  --good-soft: #15291e;
-  --warn-soft: #2e2512;
-  --bad-soft: #321818;
-  --track: #252a32;
-  --shadow: none;
+  /* One palette: a soft blue sky with frosted glass cards, mint accents taken from the app icon. */
+  --sky-top: #3a86ec;
+  --sky-mid: #4a72d4;
+  --sky-bottom: #33478f;
+  --surface: rgba(255, 255, 255, 0.13);
+  --surface-2: rgba(255, 255, 255, 0.1);
+  --surface-hover: rgba(255, 255, 255, 0.2);
+  --solid: #3f5aa6;
+  --border: rgba(255, 255, 255, 0.14);
+  --divider: rgba(255, 255, 255, 0.12);
+  --text: #ffffff;
+  --text-2: rgba(255, 255, 255, 0.74);
+  --text-3: rgba(255, 255, 255, 0.52);
+  --ink: #142a5c;
+  --accent: #6ff0c8;
+  --accent-2: #45d8f0;
+  --accent-soft: rgba(111, 240, 200, 0.18);
+  --accent-text: #0d2a4f;
+  --cpu: #6ff0c8;
+  --mem: #c3b5ff;
+  --net: #ffd45e;
+  --good: #72eba6;
+  --warn: #ffd45e;
+  --bad: #ff98a8;
+  --good-soft: rgba(114, 235, 166, 0.18);
+  --warn-soft: rgba(255, 212, 94, 0.18);
+  --bad-soft: rgba(255, 152, 168, 0.18);
+  --track: rgba(255, 255, 255, 0.14);
+  --radius: 26px;
+  --shadow: 0 10px 30px rgba(20, 30, 90, 0.18);
   color-scheme: dark;
 }
 
@@ -29,9 +39,9 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
+  background: var(--sky-mid);
   color: var(--text);
-  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Inter", sans-serif;
+  font-family: "Onest Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
@@ -54,19 +64,23 @@ button:disabled { cursor: default; opacity: 0.5; }
 input { font: inherit; color: inherit; }
 
 .num { font-variant-numeric: tabular-nums; }
+/* Display-size figures look better with proportional digits. */
+.display { font-variant-numeric: normal; }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px 20px;
+  padding: 20px 22px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
   margin: 0 0 12px;
   display: flex;
   align-items: center;
@@ -74,59 +88,87 @@ input { font: inherit; color: inherit; }
   gap: 8px;
 }
 
+.card-title .faint { font-weight: 500; font-size: 13px; }
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 10px;
-  font-weight: 600;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-weight: 650;
   white-space: nowrap;
-  transition: background 0.15s, transform 0.05s;
+  transition: background 0.15s, transform 0.05s, filter 0.15s;
 }
 
 .btn:active:not(:disabled) { transform: translateY(1px); }
-.btn-primary { background: var(--accent); color: var(--accent-text); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--accent-text);
+  box-shadow: 0 6px 18px rgba(40, 200, 200, 0.28);
+}
 .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
-.btn-ghost { background: var(--surface-2); border: 1px solid var(--border); }
-.btn-ghost:hover:not(:disabled) { background: var(--track); }
-.btn-small { height: 30px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
-.btn-danger { background: var(--bad); color: #fff; }
+.btn-ghost { background: var(--surface); border: 1px solid var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-hover); }
+.btn-small { height: 32px; padding: 0 14px; font-size: 13px; }
+.btn-danger { background: var(--bad); color: var(--ink); }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  height: 20px;
-  padding: 0 7px;
-  border-radius: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 650;
   white-space: nowrap;
 }
 
-.badge-safe { background: var(--good-soft); color: var(--good); }
-.badge-moderate { background: var(--warn-soft); color: var(--warn); }
-.badge-expert { background: var(--bad-soft); color: var(--bad); }
+/* Solid pastel pills read better on the blue sky than tinted text. */
+.badge-safe { background: var(--good); color: #0c3a22; }
+.badge-moderate { background: var(--warn); color: #4a3500; }
+.badge-expert { background: var(--bad); color: #4d0f1d; }
 .badge-muted { background: var(--track); color: var(--text-2); }
+
+/* Separate pills, the active one solid white (like day chips in a forecast). */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.chip:hover { background: var(--surface-hover); }
+.chip.on { background: #fff; color: var(--ink); border-color: #fff; }
+.chip-small { height: 28px; padding: 0 12px; font-size: 12.5px; }
 
 .muted { color: var(--text-2); }
 .faint { color: var(--text-3); }
 
 .scroll { overflow-y: auto; }
-.scroll::-webkit-scrollbar { width: 10px; }
+.scroll::-webkit-scrollbar { width: 12px; }
 .scroll::-webkit-scrollbar-thumb {
-  background: var(--track);
-  border-radius: 10px;
-  border: 3px solid var(--bg);
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  border: 4px solid transparent;
+  background-clip: padding-box;
 }
 
 .page {
-  padding: 24px 28px 28px;
+  padding: 28px 32px 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   min-height: 100%;
 }
 
@@ -137,15 +179,15 @@ input { font: inherit; color: inherit; }
   gap: 16px;
 }
 
-.page-head h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; }
-.page-head p { margin: 4px 0 0; color: var(--text-2); }
+.page-head h1 { margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+.page-head p { margin: 6px 0 0; color: var(--text-2); font-size: 15px; }
 
 .check {
   appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  border: 1.5px solid var(--text-3);
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
   display: inline-grid;
   place-content: center;
   margin: 0;
@@ -167,9 +209,9 @@ input { font: inherit; color: inherit; }
 
 .switch {
   appearance: none;
-  width: 36px;
-  height: 20px;
-  border-radius: 20px;
+  width: 42px;
+  height: 24px;
+  border-radius: 24px;
   background: var(--track);
   position: relative;
   cursor: pointer;
@@ -180,15 +222,15 @@ input { font: inherit; color: inherit; }
 .switch::after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   transition: transform 0.15s;
 }
 .switch:checked { background: var(--accent); }
-.switch:checked::after { transform: translateX(16px); }
+.switch:checked::after { transform: translateX(18px); }
 .switch:disabled { opacity: 0.5; cursor: default; }
