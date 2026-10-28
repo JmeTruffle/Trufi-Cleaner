@@ -165,7 +165,8 @@ input { font: inherit; color: inherit; }
 }
 
 .page {
-  padding: 28px 32px 32px;
+  /* Bottom inset matches the sidebar's, so both end on the same line. */
+  padding: 28px 32px 14px;
   display: flex;
   flex-direction: column;
   gap: 18px;
