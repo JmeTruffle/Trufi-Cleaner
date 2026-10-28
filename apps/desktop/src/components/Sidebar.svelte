@@ -6,6 +6,7 @@
     { id: "overview", label: "Обзор" },
     { id: "cleaner", label: "Очистка" },
     { id: "optimize", label: "Оптимизация" },
+    { id: "drivers", label: "Драйверы" },
     { id: "settings", label: "Настройки" },
   ];
 </script>

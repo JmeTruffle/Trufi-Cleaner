@@ -5,6 +5,7 @@
   import UpdateBanner from "./components/UpdateBanner.svelte";
   import { app } from "./lib/store.svelte";
   import Cleaner from "./pages/Cleaner.svelte";
+  import Drivers from "./pages/Drivers.svelte";
   import Optimize from "./pages/Optimize.svelte";
   import Overview from "./pages/Overview.svelte";
   import Settings from "./pages/Settings.svelte";
@@ -21,6 +22,7 @@
       {#if app.page === "overview"}<Overview />
       {:else if app.page === "cleaner"}<Cleaner />
       {:else if app.page === "optimize"}<Optimize />
+      {:else if app.page === "drivers"}<Drivers />
       {:else}<Settings />{/if}
     </main>
   </div>

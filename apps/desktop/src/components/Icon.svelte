@@ -4,6 +4,8 @@
     overview: "M4 13h4v7H4zM10 4h4v16h-4zM16 9h4v11h-4z",
     cleaner: "M14 4l6 6M9 9l6 6M4 20l5-1 9-9-4-4-9 9z",
     optimize: "M12 3v4M12 17v4M4.2 7l3.5 2M16.3 15l3.5 2M4.2 17l3.5-2M16.3 9l3.5-2M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+    drivers: "M8 8h8v8H8zM10 4v4M14 4v4M10 16v4M14 16v4M4 10h4M4 14h4M16 10h4M16 14h4",
+    windows: "M4 5.5l7-1v7H4zM13 4.2l7-1.2v8.5h-7zM4 13h7v7l-7-1zM13 13h7v8l-7-1.2z",
     settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM3 12h2M19 12h2M12 3v2M12 19v2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4",
     shield: "M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z",
     chevron: "M9 6l6 6-6 6",

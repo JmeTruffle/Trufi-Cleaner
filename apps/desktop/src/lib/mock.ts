@@ -2,8 +2,8 @@
 // Windows 11 machine so the UI can be judged realistically.
 
 import type {
-  CleanReport, CleanRequest, HealthReport, InstalledApp, RuleFinding, ScanArgs, ScanEvent,
-  ScanSummary, StartupItem, SystemInfo, SystemSnapshot,
+  CleanReport, CleanRequest, DriverInfo, HealthReport, InstalledApp, PendingUpdate, RuleFinding, ScanArgs, ScanEvent,
+  ScanSummary, StartupItem, SystemInfo, SystemSnapshot, UpdateStatus,
 } from "./types";
 
 const GB = 1024 ** 3;
@@ -154,6 +154,56 @@ const apps: InstalledApp[] = [
   install_location: null, size_bytes: size as number | null, broken: broken as boolean, can_uninstall: !broken,
 }));
 
+const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const update = (title: string, extra: Partial<PendingUpdate> = {}): PendingUpdate => ({
+  id: title, title, driver: false, optional: false, definition: false, severity: null, kb: null, size_bytes: 0,
+  driver_class: null, driver_provider: null, driver_hardware_id: null, driver_date: null, ...extra,
+});
+const GPU_HWID = "PCI\\VEN_10DE&DEV_2484&SUBSYS_146B10DE";
+let updatesChecked = false;
+let driversListed = false;
+const updates: UpdateStatus = {
+  version: { name: "Windows 11", display_version: "25H2", build: 26200, revision: 6899, edition: "Professional" },
+  servicing_ends: "2027-10-12",
+  out_of_support: false,
+  pending: [
+    update("2026-10 Накопительное обновление для Windows 11 Version 25H2 для систем на базе процессоров x64", { severity: "Critical", kb: "KB5068861", size_bytes: 820 * MB }),
+    update("Обновление аналитики системы безопасности для Microsoft Defender Antivirus", { definition: true, size_bytes: 60 * MB }),
+    update("NVIDIA - Display - 32.0.15.8129", { driver: true, optional: true, driver_class: "Display", driver_provider: "NVIDIA", driver_hardware_id: GPU_HWID, driver_date: daysAgo(40) }),
+  ],
+  reboot_required: false,
+  last_install: daysAgo(24),
+  days_since_install: 24,
+  error: null,
+  checked_at_ms: Date.now(),
+};
+const drv = (device: string, cls: string, provider: string, version: string, ageDays: number, extra: Partial<DriverInfo> = {}): DriverInfo => {
+  const inbox = provider === "Microsoft";
+  return {
+    id: `ROOT\\${device}`, device, class: cls, provider, version, date: daysAgo(ageDays), inf: "oem12.inf",
+    signed: true, problem_code: null, hardware_id: null, inbox, age_days: ageDays, old: !inbox && ageDays >= 3 * 365,
+    update: null, ...extra,
+  };
+};
+const drivers: DriverInfo[] = [
+  drv("Intel(R) Wireless Bluetooth(R)", "BLUETOOTH", "Intel Corporation", "22.150.0.6", 420, { problem_code: 43 }),
+  drv("NVIDIA GeForce RTX 3070", "DISPLAY", "NVIDIA", "32.0.15.6094", 210, {
+    hardware_id: GPU_HWID, update: { title: "NVIDIA - Display - 32.0.15.8129", date: daysAgo(40), optional: true },
+  }),
+  drv("Генератор сигналов Lightshot", "MEDIA", "Skillbrains", "1.0.0.3", 2100, { signed: false }),
+  drv("Realtek PCIe GbE Family Controller", "NET", "Realtek", "10.38.1001.2019", 1600),
+  drv("Realtek High Definition Audio", "MEDIA", "Realtek Semiconductor Corp.", "6.0.9549.1", 300),
+  drv("AMD SMBus", "SYSTEM", "Advanced Micro Devices, Inc", "5.12.0.38", 900),
+  drv("AMD GPIO Controller", "SYSTEM", "Advanced Micro Devices, Inc.", "2.2.0.130", 700),
+  drv("Logitech G502 HERO", "HIDCLASS", "Logitech", "1.10.82.0", 500),
+  drv("Samsung SSD 980 PRO 1TB", "DISKDRIVE", "Microsoft", "10.0.26100.1", 7400),
+  drv("Стандартный контроллер SATA AHCI", "HDC", "Microsoft", "10.0.26100.1150", 7400),
+  drv("Корневой USB-концентратор (USB 3.0)", "USB", "Microsoft", "10.0.26100.1", 7400),
+  drv("HID-клавиатура", "KEYBOARD", "Microsoft", "10.0.26100.1", 7400),
+  drv("Монитор PnP (стандартный)", "MONITOR", "Microsoft", "10.0.26100.1", 7400),
+  drv("Процессор AMD Ryzen 7 5800X", "PROCESSOR", "Microsoft", "10.0.26100.1", 7400),
+];
+
 export const mock = {
   async system_info(): Promise<SystemInfo> {
     return {
@@ -163,6 +213,17 @@ export const mock = {
     };
   },
   async snapshot() { return snapshot(); },
+  async update_status(): Promise<UpdateStatus> {
+    if (!updatesChecked) await wait(2500);
+    updatesChecked = true;
+    return structuredClone(updates);
+  },
+  async drivers(): Promise<DriverInfo[]> {
+    if (!driversListed) await wait(900);
+    driversListed = true;
+    return drivers.map((d) => ({ ...d }));
+  },
+  async open_system_page() {},
   async health(): Promise<HealthReport> {
     const junk = scanned?.findings.filter((x) => x.risk !== "expert").reduce((s, x) => s + x.bytes, 0);
     const factors = [
@@ -170,11 +231,16 @@ export const mock = {
       { id: "uptime_long", penalty: 4, value: 9.2 },
       { id: "startup_many", penalty: 5, value: startup.filter((s) => s.enabled).length },
       ...(junk ? [{ id: "junk", penalty: 15, value: junk }] : []),
-    ].filter((x) => x.id !== "startup_many" || x.value >= 8);
+      ...(updatesChecked ? [{ id: "updates_pending", penalty: 12, value: 1 }] : []),
+      ...(driversListed ? [{ id: "driver_problems", penalty: 12, value: 1 }, { id: "driver_unsigned", penalty: 6, value: 1 }] : []),
+      ...(updatesChecked && driversListed ? [{ id: "driver_updates", penalty: 4, value: 1 }] : []),
+    ].filter((x) => x.id !== "startup_many" || x.value >= 8).sort((a, b) => b.penalty - a.penalty);
     const score = 100 - factors.reduce((s, x) => s + x.penalty, 0);
     return {
       health: { score, level: score >= 80 ? "good" : score >= 55 ? "fair" : "poor", factors },
       advice: [
+        ...(updatesChecked ? [{ id: "updates_pending", severity: "critical" as const, action: "updates" as const, value: 1, subject: null }] : []),
+        ...(driversListed ? [{ id: "driver_problems", severity: "warning" as const, action: "drivers" as const, value: 1, subject: null }] : []),
         ...(junk ? [{ id: "junk", severity: "warning" as const, action: "clean" as const, value: junk, subject: null }] : []),
         { id: "system_disk_full", severity: "warning", action: "scan", value: 81.8, subject: null },
         ...(factors.some((x) => x.id === "startup_many") ? [{ id: "startup_many", severity: "info" as const, action: "startup" as const, value: startup.filter((s) => s.enabled).length, subject: null }] : []),

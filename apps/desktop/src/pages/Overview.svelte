@@ -2,8 +2,9 @@
   import AreaChart from "../components/AreaChart.svelte";
     import Icon from "../components/Icon.svelte";
   import Mascot from "../components/Mascot.svelte";
-  import { bytes, count, duration, percent, rate } from "../lib/format";
+  import { bytes, count, duration, percent, plural, rate } from "../lib/format";
   import { adviceActionLabel, adviceText, factorText, healthLevel } from "../lib/i18n";
+  import { api } from "../lib/api";
   import { app } from "../lib/store.svelte";
   import type { Advice } from "../lib/types";
 
@@ -12,6 +13,12 @@
   let memPct = $derived(s ? (s.memory_used / Math.max(1, s.memory_total)) * 100 : 0);
   let procTab = $state<"cpu" | "memory">("cpu");
   let procs = $derived(s ? (procTab === "cpu" ? s.top_by_cpu : s.top_by_memory) : []);
+  let u = $derived(app.updates);
+  let pendingUpdates = $derived(u?.pending.filter((x) => !x.driver && !x.optional && !x.definition).length ?? 0);
+  let driverProblems = $derived(
+    app.drivers?.filter((d) => d.problem_code != null && d.problem_code !== 0 && d.problem_code !== 22 && d.problem_code !== 45).length ?? 0,
+  );
+  let driverOffers = $derived(u?.pending.filter((x) => x.driver).length ?? 0);
 
   function act(a: Advice) {
     switch (a.action) {
@@ -30,6 +37,12 @@
         app.optimizeTab = "processes";
         app.page = "optimize";
         break;
+      case "updates":
+        api.openSystemPage("windows_update").catch(() => {});
+        break;
+      case "drivers":
+        app.page = "drivers";
+        break;
     }
   }
 
@@ -40,6 +53,8 @@
 
   const mascotColor = { good: "#5ee6a0", fair: "#ffd23f", poor: "#ff9a4d" };
   const mascotLine = { good: "Всё блестит!", fair: "Пора немного прибраться", poor: "Помогите, тут завал!" };
+
+  const dmy = (iso: string) => iso.split("-").reverse().join(".");
 
   const diskColor = (used: number) => (used >= 90 ? "var(--bad)" : used >= 80 ? "var(--warn)" : "var(--accent)");
 </script>
@@ -144,7 +159,7 @@
     </section>
   </div>
 
-  <div class="grid">
+  <div class="grid bottom">
     <section class="card">
       <div class="card-title">
         Активные программы
@@ -166,6 +181,57 @@
       </table>
     </section>
 
+    <section class="card">
+      <div class="card-title">Система</div>
+      <div class="sys-row">
+        <span class="sys-icon"><Icon name="windows" size={18} /></span>
+        <div class="sys-main">
+          <div class="sys-title">
+            {#if u?.version}{u.version.name} {u.version.display_version ?? ""}{:else}Windows{/if}
+          </div>
+          {#if app.updatesState === "loading" && !u}
+            <div class="muted">Проверяем обновления…</div>
+          {:else if app.updatesState === "error" && !u}
+            <div class="muted">Не удалось проверить обновления: {app.updatesError}</div>
+          {:else if u}
+            {#if u.out_of_support}
+              <div class="st bad">Версия не поддерживается{#if u.servicing_ends} с {dmy(u.servicing_ends)}{/if}</div>
+            {:else if pendingUpdates}
+              <div class="st warn">Ждут установки: {pendingUpdates}</div>
+            {:else if u.reboot_required}
+              <div class="st warn">Обновления ждут перезагрузки</div>
+            {:else if u.error}
+              <div class="muted">Центр обновления недоступен: {u.error}</div>
+            {:else}
+              <div class="st good">Обновления установлены</div>
+            {/if}
+            <div class="faint small">
+              {[u.version && `Сборка ${u.version.build}.${u.version.revision}`, u.last_install && `обновлялась ${dmy(u.last_install)}`].filter(Boolean).join(" · ")}
+            </div>
+          {/if}
+        </div>
+        <button class="btn btn-ghost btn-small" onclick={() => api.openSystemPage("windows_update").catch(() => {})}>Центр обновления</button>
+      </div>
+      <div class="sys-row">
+        <span class="sys-icon"><Icon name="drivers" size={18} /></span>
+        <div class="sys-main">
+          <div class="sys-title">Драйверы</div>
+          {#if app.driversState === "loading" && !app.drivers}
+            <div class="muted">Проверяем устройства…</div>
+          {:else if app.driversState === "error" && !app.drivers}
+            <div class="muted">Не удалось проверить: {app.driversError}</div>
+          {:else if app.drivers}
+            {#if driverProblems}
+              <div class="st bad">{driverProblems} {plural(driverProblems, "устройство работает", "устройства работают", "устройств работают")} с ошибкой</div>
+            {:else}
+              <div class="st good">Все устройства работают</div>
+            {/if}
+            {#if driverOffers}<div class="faint small">Доступно обновлений: {driverOffers}</div>{/if}
+          {/if}
+        </div>
+        <button class="btn btn-ghost btn-small" onclick={() => (app.page = "drivers")}>Открыть</button>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -173,6 +239,18 @@
   .grid { display: grid; gap: 18px; }
   .top { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+  .bottom { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+
+  .sys-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--divider); }
+  .card-title + .sys-row { border-top: 0; padding-top: 2px; }
+  .sys-icon { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
+  .sys-main { flex: 1; min-width: 0; font-size: 13px; }
+  .sys-title { font-weight: 700; font-size: 15px; }
+  .st { font-weight: 600; }
+  .st.good { color: var(--good); }
+  .st.warn { color: var(--warn); }
+  .st.bad { color: var(--bad); }
+  .small { font-size: 12px; }
 
   .hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 4px 4px 0; min-height: 250px; }
   .hero-text { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
@@ -232,6 +310,7 @@
 
   @media (max-width: 1000px) {
     .top { grid-template-columns: 1fr 1fr; }
+    .bottom { grid-template-columns: 1fr; }
     .hero-art { display: none; }
   }
 </style>

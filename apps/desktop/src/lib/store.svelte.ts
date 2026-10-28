@@ -3,9 +3,15 @@
 
 import { api, onScanEvent } from "./api";
 import { checkForUpdate, type AvailableUpdate } from "./updater";
-import type { CleanReport, CleanRequest, HealthReport, RuleFinding, ScanArgs, ScanSummary, SystemInfo, SystemSnapshot } from "./types";
+import { errorText } from "./i18n";
+import type {
+  CleanReport, CleanRequest, DriverInfo, HealthReport, RuleFinding, ScanArgs, ScanSummary, SystemInfo,
+  SystemSnapshot, UpdateStatus,
+} from "./types";
 
-export type Page = "overview" | "cleaner" | "optimize" | "settings";
+export type Page = "overview" | "cleaner" | "optimize" | "drivers" | "settings";
+/** Progress of a slow system check (Windows Update, driver list). */
+export type CheckState = "idle" | "loading" | "done" | "error";
 
 const HISTORY = 60;
 const UPDATE_CHECK_MS = 6 * 60 * 60 * 1000;
@@ -39,6 +45,13 @@ class AppStore {
   netHistory = $state<number[]>([]);
   health = $state<HealthReport | null>(null);
 
+  updates = $state<UpdateStatus | null>(null);
+  updatesState = $state<CheckState>("idle");
+  updatesError = $state("");
+  drivers = $state<DriverInfo[] | null>(null);
+  driversState = $state<CheckState>("idle");
+  driversError = $state("");
+
   scanning = $state(false);
   scanProgress = $state({ done: 0, total: 0, current: "" });
   scan = $state<ScanSummary | null>(null);
@@ -62,6 +75,9 @@ class AppStore {
     await this.poll();
     this.refreshHealth();
     this.timer ??= setInterval(() => this.poll(), POLL_MS);
+    // Both checks are slow (WMI, Windows Update); run them in the background
+    // and let the score pick them up when they finish.
+    this.loadDrivers().then(() => this.loadUpdates());
     setTimeout(() => this.checkUpdate(), 3000);
     setInterval(() => this.checkUpdate(), UPDATE_CHECK_MS);
     onScanEvent((e) => {
@@ -105,6 +121,34 @@ class AppStore {
     } catch {
       this.updateState = "error";
     }
+  }
+
+  async loadUpdates(refresh = false) {
+    if (this.updatesState === "loading") return;
+    this.updatesState = "loading";
+    try {
+      this.updates = await api.updateStatus(refresh);
+      this.updatesState = "done";
+      // Driver offers from Windows Update are linked to devices server-side.
+      if (this.drivers) this.drivers = await api.drivers(false);
+    } catch (e) {
+      this.updatesError = errorText(e);
+      this.updatesState = "error";
+    }
+    this.refreshHealth();
+  }
+
+  async loadDrivers(refresh = false) {
+    if (this.driversState === "loading") return;
+    this.driversState = "loading";
+    try {
+      this.drivers = await api.drivers(refresh);
+      this.driversState = "done";
+    } catch (e) {
+      this.driversError = errorText(e);
+      this.driversState = "error";
+    }
+    this.refreshHealth();
   }
 
   async refreshHealth() {

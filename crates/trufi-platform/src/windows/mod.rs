@@ -1,11 +1,16 @@
 mod apps;
+mod drivers;
+mod powershell;
 mod shell;
 mod startup;
+mod updates;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use trufi_core::drivers::DriverInfo;
 use trufi_core::model::{InstalledApp, StartupItem};
-use trufi_core::platform::{LeftoverRoots, OsFamily, Platform};
+use trufi_core::platform::{LeftoverRoots, OsFamily, Platform, SystemPage};
+use trufi_core::updates::UpdateStatus;
 use trufi_core::Result;
 
 pub struct WindowsPlatform {
@@ -219,6 +224,23 @@ impl Platform for WindowsPlatform {
 
     fn empty_trash(&self) -> Result<()> {
         shell::empty_recycle_bin()
+    }
+
+    fn update_status(&self) -> Result<UpdateStatus> {
+        updates::status()
+    }
+
+    fn drivers(&self) -> Result<Vec<DriverInfo>> {
+        drivers::list()
+    }
+
+    fn open_system_page(&self, page: SystemPage) -> Result<()> {
+        let target = match page {
+            SystemPage::WindowsUpdate => "ms-settings:windowsupdate",
+            SystemPage::OptionalUpdates => "ms-settings:windowsupdate-optionalupdates",
+            SystemPage::DeviceManager => "devmgmt.msc",
+        };
+        shell::shell_execute("open", target, "")
     }
 }
 

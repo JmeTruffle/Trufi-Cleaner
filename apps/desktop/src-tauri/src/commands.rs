@@ -6,11 +6,14 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
 use trufi_core::advisor::{advise, Advice};
 use trufi_core::cleaner::{clean as run_clean, CleanRequest};
+use trufi_core::drivers::{self, DriverInfo};
 use trufi_core::health::{evaluate, Health, HealthInput};
 use trufi_core::model::{CleanReport, InstalledApp, ScanSummary, StartupItem};
 use trufi_core::monitor::SystemSnapshot;
+use trufi_core::platform::SystemPage;
 use trufi_core::rules::Rule;
 use trufi_core::scanner::{ScanOptions, Scanner};
+use trufi_core::updates::UpdateStatus;
 
 /// Errors cross the IPC boundary as a code the UI translates plus details.
 #[derive(Debug, Serialize)]
@@ -140,16 +143,63 @@ pub async fn health(app: AppHandle) -> CmdResult<HealthReport> {
                 *state.startup_enabled.lock().unwrap() = startup;
             }
         }
+        let updates = state.updates.lock().unwrap().clone();
+        let pending = updates.as_ref().map(|u| u.pending.as_slice()).unwrap_or_default();
         let input = HealthInput {
             cpu_avg_percent: cpu_avg,
             junk_bytes: scan.as_ref().map(|s| s.summary().total_bytes),
             startup_enabled: startup,
+            updates: updates.as_ref().map(UpdateStatus::health),
+            drivers: state.drivers.lock().unwrap().as_deref().map(|d| drivers::health(d, pending)),
         };
         let health = evaluate(&snap, &input);
         let advice = advise(&snap, &health, scan.is_some());
         Ok(HealthReport { health, advice })
     })
     .await
+}
+
+/// Windows Update state. Cached after the first check; `refresh` asks
+/// the update service again.
+#[tauri::command]
+pub async fn update_status(app: AppHandle, refresh: bool) -> CmdResult<UpdateStatus> {
+    blocking(&app, move |state| {
+        if !refresh {
+            if let Some(s) = state.updates.lock().unwrap().clone() {
+                return Ok(s);
+            }
+        }
+        let status = state.platform.update_status()?;
+        // Driver offers may have changed: re-link them to devices.
+        if let Some(list) = state.drivers.lock().unwrap().as_mut() {
+            drivers::annotate(list, &status.pending);
+        }
+        *state.updates.lock().unwrap() = Some(status.clone());
+        Ok(status)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn drivers(app: AppHandle, refresh: bool) -> CmdResult<Vec<DriverInfo>> {
+    blocking(&app, move |state| {
+        if !refresh {
+            if let Some(list) = state.drivers.lock().unwrap().clone() {
+                return Ok(list);
+            }
+        }
+        let mut list = state.platform.drivers()?;
+        let updates = state.updates.lock().unwrap().clone();
+        drivers::annotate(&mut list, updates.as_ref().map(|u| u.pending.as_slice()).unwrap_or_default());
+        *state.drivers.lock().unwrap() = Some(list.clone());
+        Ok(list)
+    })
+    .await
+}
+
+#[tauri::command]
+pub fn open_system_page(state: State<'_, AppState>, page: SystemPage) -> CmdResult<()> {
+    Ok(state.platform.open_system_page(page)?)
 }
 
 #[tauri::command]

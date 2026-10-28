@@ -89,7 +89,7 @@ export interface SystemSnapshot {
 
 export interface HealthFactor { id: string; penalty: number; value: number }
 export interface Health { score: number; level: "good" | "fair" | "poor"; factors: HealthFactor[] }
-export type AdviceAction = "scan" | "clean" | "startup" | "processes" | "restart";
+export type AdviceAction = "scan" | "clean" | "startup" | "processes" | "restart" | "updates" | "drivers";
 export interface Advice {
   id: string;
   severity: "info" | "warning" | "critical";
@@ -132,6 +132,62 @@ export interface SystemInfo {
   rule_errors: string[];
   user_rules_dir: string | null;
 }
+
+export interface WindowsVersion {
+  name: string;
+  display_version: string | null;
+  build: number;
+  revision: number;
+  edition: string;
+}
+
+export interface PendingUpdate {
+  id: string;
+  title: string;
+  driver: boolean;
+  optional: boolean;
+  definition: boolean;
+  severity: string | null;
+  kb: string | null;
+  size_bytes: number;
+  driver_class: string | null;
+  driver_provider: string | null;
+  driver_hardware_id: string | null;
+  driver_date: string | null;
+}
+
+export interface UpdateStatus {
+  version: WindowsVersion | null;
+  servicing_ends: string | null;
+  out_of_support: boolean;
+  pending: PendingUpdate[];
+  reboot_required: boolean;
+  last_install: string | null;
+  days_since_install: number | null;
+  error: string | null;
+  checked_at_ms: number;
+}
+
+export interface DriverUpdate { title: string; date: string | null; optional: boolean }
+
+export interface DriverInfo {
+  id: string;
+  device: string;
+  class: string | null;
+  provider: string | null;
+  version: string | null;
+  date: string | null;
+  inf: string | null;
+  signed: boolean | null;
+  problem_code: number | null;
+  hardware_id: string | null;
+  inbox: boolean;
+  age_days: number | null;
+  old: boolean;
+  update: DriverUpdate | null;
+}
+
+export type SystemPage = "windows_update" | "optional_updates" | "device_manager";
 
 export interface CommandError { code: string; message: string }
 
