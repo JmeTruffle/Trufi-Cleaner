@@ -38,8 +38,18 @@
     await app.runScan(true);
   }
 
-  const mascotColor = { good: "#5ee6a0", fair: "#ffd23f", poor: "#ff9a4d" };
-  const mascotLine = { good: "Всё блестит!", fair: "Пора немного прибраться", poor: "Помогите, тут завал!" };
+  // The mascot's colour slides smoothly with the score: green when all is
+  // well, through yellow and orange, to red when the system needs help.
+  function mascotColor(score: number) {
+    const stops: [number, number][] = [[0, 2], [35, 8], [55, 30], [80, 48], [100, 150]];
+    let i = stops.findIndex(([s]) => score <= s);
+    if (i <= 0) i = 1;
+    const [s0, h0] = stops[i - 1];
+    const [s1, h1] = stops[Math.min(i, stops.length - 1)];
+    const t = s1 === s0 ? 1 : Math.min(1, Math.max(0, (score - s0) / (s1 - s0)));
+    return `hsl(${(h0 + (h1 - h0) * t).toFixed(0)} 82% 63%)`;
+  }
+  const mascotMood = (score: number) => (score >= 80 ? "happy" : score >= 55 ? "calm" : score >= 35 ? "worried" : "sad");
 
   const diskColor = (used: number) => (used >= 90 ? "var(--bad)" : used >= 80 ? "var(--warn)" : "var(--accent)");
 </script>
@@ -47,25 +57,23 @@
 <div class="page">
   <section class="hero">
     {#if h}
-      {@const lvl = h.health.level}
       <div class="hero-text">
         <div class="eyebrow">Состояние компьютера</div>
         <div class="score num display">{h.health.score}<span class="of">/100</span></div>
-        <h1>{healthLevel[lvl]}</h1>
-        <div class="chips">
-          {#each h.health.factors.slice(0, 3) as f}
-            <span class="chip chip-small">{factorText(f)}</span>
-          {:else}
-            <span class="chip chip-small">Нагрузка в норме, места достаточно</span>
-          {/each}
-        </div>
+        <h1>{healthLevel[h.health.level]}</h1>
         <button class="btn btn-primary hero-btn" onclick={quickClean} disabled={app.scanning || app.cleaning}>
           <Icon name="sparkle" size={16} /> Быстрая очистка
         </button>
       </div>
       <div class="hero-art">
-        <div class="bubble">{mascotLine[lvl]}</div>
-        <Mascot mood={lvl === "good" ? "happy" : lvl === "fair" ? "calm" : "worried"} color={mascotColor[lvl]} size={190} />
+        <div class="bubble">
+          {#each h.health.factors.slice(0, 3) as f}
+            <p>{factorText(f)}</p>
+          {:else}
+            <p>Нагрузка в норме, места достаточно</p>
+          {/each}
+        </div>
+        <Mascot mood={mascotMood(h.health.score)} color={mascotColor(h.health.score)} size={150} />
       </div>
     {:else}
       <div class="placeholder">Оцениваем состояние…</div>
@@ -175,27 +183,31 @@
   .mid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
 
   .hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 4px 4px 0; min-height: 250px; }
-  .hero-text { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+  .hero-text { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
   .eyebrow { font-weight: 650; color: var(--text-2); font-size: 15px; }
   .score { font-size: 96px; font-weight: 800; line-height: 0.95; letter-spacing: -0.04em; }
   .of { font-size: 28px; font-weight: 700; color: var(--text-3); letter-spacing: 0; margin-left: 6px; }
   .hero h1 { margin: 2px 0 6px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
   .hero-btn { margin-top: 10px; height: 46px; padding: 0 24px; font-size: 15px; }
-  .hero-art { position: relative; flex: none; padding: 40px 24px 0 0; }
+  .hero-art { display: flex; align-items: flex-start; flex: none; padding-right: 16px; }
   .bubble {
-    position: absolute;
-    top: 0;
-    right: 150px;
-    max-width: 210px;
-    padding: 10px 16px;
+    width: max-content;
+    max-width: 230px;
+    margin: 0 -4px 0 0;
+    padding: 12px 18px;
     border-radius: 22px 22px 6px 22px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.32);
     backdrop-filter: blur(12px);
     font-weight: 650;
-    white-space: nowrap;
+    font-size: 13.5px;
+    line-height: 1.35;
+    position: relative;
     z-index: 1;
   }
+  .bubble p { margin: 0; }
+  .bubble p + p { margin-top: 6px; }
+  .hero-art :global(.mascot) { margin-top: 56px; }
   .placeholder { color: var(--text-3); padding: 40px 0; }
 
   .metric { display: flex; flex-direction: column; }
