@@ -1,7 +1,7 @@
 <script lang="ts">
   // Friendly wavy blob that shows how the computer feels. Drawn in code so
   // its colour and face can follow the health level.
-  type Mood = "happy" | "calm" | "worried" | "busy";
+  type Mood = "happy" | "calm" | "worried" | "sad" | "busy";
   let {
     mood = "happy",
     color = "#5ce8b0",
@@ -20,7 +20,9 @@
     }
     return `M${pts.join("L")}Z`;
   }
-  let outline = $derived(blob(mood === "worried" ? 14 : 9, mood === "worried" ? 0.05 : 0.035));
+  // Calm moods are softly scalloped, a stressed one gets spikier.
+  let spiky = $derived(mood === "worried" || mood === "sad");
+  let outline = $derived(blob(spiky ? 14 : 9, mood === "sad" ? 0.065 : spiky ? 0.05 : 0.035));
 </script>
 
 <div class="mascot" style="width:{size}px;height:{size}px">
@@ -31,6 +33,10 @@
         <rect x="44" y="40" width="5" height="7" rx="1.6" fill="#1b1d2a" />
         <rect x="55" y="40" width="5" height="7" rx="1.6" fill="#1b1d2a" />
         <ellipse cx="52" cy="55" rx="3.2" ry="3.6" fill="#fff" />
+      {:else if mood === "sad"}
+        <rect x="38" y="41" width="5" height="5" rx="1.6" fill="#1b1d2a" />
+        <rect x="50" y="41" width="5" height="5" rx="1.6" fill="#1b1d2a" />
+        <path d="M41.5 56a5 4 0 0 1 10 0" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" />
       {:else if mood === "worried"}
         <rect x="38" y="40" width="5" height="6" rx="1.6" fill="#1b1d2a" />
         <rect x="50" y="40" width="5" height="6" rx="1.6" fill="#1b1d2a" />

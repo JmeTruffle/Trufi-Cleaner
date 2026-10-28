@@ -12,6 +12,25 @@ export const mockEvents = new Set<(e: ScanEvent) => void>();
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 let cpu = 18;
+const demoHealth: Record<string, { id: string; penalty: number; value: number }[]> = {
+  good: [],
+  fair: [
+    { id: "system_disk_full", penalty: 12, value: 91.4 },
+    { id: "startup_many", penalty: 8, value: 14 },
+    { id: "uptime_long", penalty: 6, value: 12.5 },
+  ],
+  poor: [
+    { id: "system_disk_full", penalty: 20, value: 96.2 },
+    { id: "memory_high", penalty: 15, value: 92 },
+    { id: "junk", penalty: 15, value: 24.6 * 1024 ** 3 },
+  ],
+  bad: [
+    { id: "system_disk_full", penalty: 25, value: 98.7 },
+    { id: "memory_high", penalty: 20, value: 96 },
+    { id: "cpu_high", penalty: 15, value: 94 },
+    { id: "junk", penalty: 15, value: 41.3 * 1024 ** 3 },
+  ],
+};
 let scanned: ScanSummary | null = null;
 const startup: StartupItem[] = [
   ["Steam", "\"C:\\Program Files (x86)\\Steam\\steam.exe\" -silent", true, true],
@@ -235,6 +254,9 @@ export const mock = {
       ...(driversListed ? [{ id: "driver_problems", penalty: 12, value: 1 }, { id: "driver_unsigned", penalty: 6, value: 1 }] : []),
       ...(updatesChecked && driversListed ? [{ id: "driver_updates", penalty: 4, value: 1 }] : []),
     ].filter((x) => x.id !== "startup_many" || x.value >= 8).sort((a, b) => b.penalty - a.penalty);
+    // `?health=good|fair|poor|bad` previews the dashboard in other states.
+    const demo = demoHealth[new URLSearchParams(location.search).get("health") ?? ""];
+    if (demo) factors.splice(0, factors.length, ...demo);
     const score = 100 - factors.reduce((s, x) => s + x.penalty, 0);
     return {
       health: { score, level: score >= 80 ? "good" : score >= 55 ? "fair" : "poor", factors },
