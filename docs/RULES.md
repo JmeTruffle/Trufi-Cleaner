@@ -28,10 +28,10 @@ close_processes = ["Discord.exe"] # подсказка «закройте про
 | `min_age_hours` | 0 | Не трогать файлы, изменённые недавно |
 | `max_depth` | без ограничения | Глубина обхода (1 — только содержимое корня) |
 | `remove_empty_dirs` | true | Удалять папки, опустевшие после очистки (сам корень остаётся) |
-| `keep_newest` | — | Каждая подпапка — одна запись, N самых свежих остаются (старые версии программ) |
+| `keep_newest` | — | Каждая подпапка — одна запись, N самых свежих остаются (старые версии программ). `0` — каждая подпапка отдельной записью, например резервные копии iPhone |
 | `requires_admin` | false | Пометка «нужны права администратора» |
 | `default` | `risk == "safe"` | Отмечено ли правило после сканирования |
-| `special` | — | `"trash"`: корзина через API системы, `paths` не нужны |
+| `special` | — | `"trash"`: корзина через API системы (на macOS — `~/.Trash`, нужен полный доступ к диску), `paths` не нужны |
 
 ## Переменные в путях
 
@@ -39,9 +39,11 @@ close_processes = ["Discord.exe"] # подсказка «закройте про
 
 Windows: `USERPROFILE` (= `HOME`), `LOCALAPPDATA`, `APPDATA`, `PROGRAMDATA`, `PROGRAMFILES`, `PROGRAMFILES(X86)`, `PUBLIC`, `WINDIR`, `SYSTEMDRIVE`, `STEAM` (папка Steam из реестра).
 
+macOS: `HOME` (и `~`), `DARWIN_USER_DIR` (папка над `$TMPDIR`: `"%DARWIN_USER_DIR%/T"` — временные файлы), `CONTAINERS` (`~/Library/Containers`, только при полном доступе к диску; без него правило просто не применяется).
+
 Списки (правило проверяется для каждого значения):
 
-- `%DRIVES%` — все фиксированные диски: `"%DRIVES%/NVIDIA"` проверит `C:\NVIDIA`, `D:\NVIDIA`, ...
+- `%DRIVES%` — все фиксированные диски: `"%DRIVES%/NVIDIA"` проверит `C:\NVIDIA`, `D:\NVIDIA`, ... На macOS — домашняя папка.
 - `%STEAMLIBS%` — все библиотеки Steam на всех дисках.
 
 `*` и `?` работают в любом сегменте: `"%LOCALAPPDATA%/Google/Chrome/User Data/*/Cache"`.

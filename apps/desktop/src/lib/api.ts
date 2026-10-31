@@ -1,10 +1,10 @@
 // Single entry point to the backend. Inside Tauri it calls Rust commands;
 // in a plain browser (`npm run dev`) it falls back to a mock so the UI can
-// be designed and tested without Windows.
+// be designed and tested on any OS (`?os=macos` mocks a Mac).
 
 import type {
   CleanReport, CleanRequest, DriverInfo, HealthReport, InstalledApp, ScanArgs, ScanEvent, ScanSummary,
-  StartupItem, SystemInfo, SystemPage, SystemSnapshot, UpdateStatus,
+  StartupItem, SystemInfo, SystemPage, SystemSnapshot, UninstallOutcome, UpdateStatus,
 } from "./types";
 
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -21,7 +21,7 @@ type Commands = {
   startup_items: [undefined, StartupItem[]];
   set_startup_enabled: [{ id: string; enabled: boolean }, void];
   installed_apps: [undefined, InstalledApp[]];
-  uninstall_app: [{ id: string }, void];
+  uninstall_app: [{ id: string }, UninstallOutcome];
   relaunch_elevated: [undefined, void];
   reveal_path: [{ path: string }, void];
 };

@@ -4,7 +4,7 @@
 use super::powershell;
 use serde::Deserialize;
 use std::time::{Duration, SystemTime};
-use trufi_core::updates::{PendingUpdate, UpdateStatus, WindowsVersion};
+use trufi_core::updates::{PendingUpdate, UpdateStatus, OsVersion};
 use trufi_core::Result;
 use winreg::enums::HKEY_LOCAL_MACHINE;
 use winreg::RegKey;
@@ -85,19 +85,20 @@ fn non_empty(s: Option<String>) -> Option<String> {
     s.map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
 }
 
-pub fn version() -> Option<WindowsVersion> {
+pub fn version() -> Option<OsVersion> {
     let key = RegKey::predef(HKEY_LOCAL_MACHINE)
         .open_subkey(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion")
         .ok()?;
     let build: u32 = key.get_value::<String, _>("CurrentBuild").ok()?.trim().parse().ok()?;
     let name = if build >= 22000 { "Windows 11" } else { "Windows 10" };
-    Some(WindowsVersion {
+    Some(OsVersion {
         name: name.into(),
         display_version: non_empty(key.get_value("DisplayVersion").ok())
             .or_else(|| non_empty(key.get_value("ReleaseId").ok())),
         build,
         revision: key.get_value::<u32, _>("UBR").unwrap_or(0),
         edition: key.get_value("EditionID").unwrap_or_default(),
+        build_label: None,
     })
 }
 

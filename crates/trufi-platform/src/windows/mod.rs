@@ -8,7 +8,7 @@ mod updates;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use trufi_core::drivers::DriverInfo;
-use trufi_core::model::{InstalledApp, StartupItem};
+use trufi_core::model::{InstalledApp, StartupItem, UninstallOutcome};
 use trufi_core::platform::{LeftoverRoots, OsFamily, Platform, SystemPage};
 use trufi_core::updates::UpdateStatus;
 use trufi_core::Result;
@@ -192,8 +192,8 @@ impl Platform for WindowsPlatform {
         Ok(apps::installed_apps())
     }
 
-    fn uninstall_app(&self, id: &str) -> Result<()> {
-        apps::uninstall(id)
+    fn uninstall_app(&self, id: &str) -> Result<UninstallOutcome> {
+        apps::uninstall(id).map(|_| UninstallOutcome::UninstallerStarted)
     }
 
     fn leftover_roots(&self) -> LeftoverRoots {
@@ -207,6 +207,7 @@ impl Platform for WindowsPlatform {
             data_roots,
             admin_roots: self.var("PROGRAMDATA").map(Path::to_path_buf).into_iter().collect(),
             ignore_names: LEFTOVER_IGNORE.iter().map(|s| s.to_string()).collect(),
+            ignore_prefixes: Vec::new(),
         }
     }
 
@@ -236,9 +237,11 @@ impl Platform for WindowsPlatform {
 
     fn open_system_page(&self, page: SystemPage) -> Result<()> {
         let target = match page {
-            SystemPage::WindowsUpdate => "ms-settings:windowsupdate",
+            SystemPage::SystemUpdate => "ms-settings:windowsupdate",
             SystemPage::OptionalUpdates => "ms-settings:windowsupdate-optionalupdates",
             SystemPage::DeviceManager => "devmgmt.msc",
+            SystemPage::LoginItems => "ms-settings:startupapps",
+            SystemPage::FullDiskAccess => return Err(trufi_core::Error::Unsupported("full disk access")),
         };
         shell::shell_execute("open", target, "")
     }

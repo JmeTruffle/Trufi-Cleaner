@@ -5,6 +5,7 @@
   import { api } from "../lib/api";
   import { bytes, percent } from "../lib/format";
   import { errorText } from "../lib/i18n";
+  import { isMac } from "../lib/os";
   import { app } from "../lib/store.svelte";
   import type { InstalledApp, StartupItem } from "../lib/types";
 
@@ -61,12 +62,22 @@
   async function uninstall(a: InstalledApp) {
     uninstalling = null;
     try {
-      await api.uninstallApp(a.id);
-      message = `Запущен деинсталлятор «${a.name}». Следуйте его шагам, затем обновите список.`;
+      const outcome = await api.uninstallApp(a.id);
+      if (outcome === "moved_to_trash") {
+        message = `«${a.name}» перемещена в Корзину. Её данные можно найти и удалить на странице «Очистка» в разделе «Остатки удалённых программ».`;
+        apps = (apps ?? []).filter((x) => x.id !== a.id);
+      } else {
+        message = `Запущен деинсталлятор «${a.name}». Следуйте его шагам, затем обновите список.`;
+      }
     } catch (e) {
       message = errorText(e);
     }
   }
+
+  // On macOS the system asks for the administrator password itself, so
+  // items that need it stay switchable.
+  const locked = (item: StartupItem) => item.requires_admin && !app.info?.is_elevated && !isMac;
+  const adminHint = isMac ? "macOS спросит пароль администратора" : "Нужны права администратора";
 </script>
 
 <div class="page">
@@ -90,8 +101,18 @@
         <div>
           <b>{enabledCount}</b> <span class="muted">из {startup?.length ?? 0} запускаются вместе с системой</span>
         </div>
-        <span class="faint small">Отключение обратимо и работает так же, как в Диспетчере задач</span>
+        {#if isMac}
+          <span class="faint small">Отключение обратимо и сработает при следующем входе в систему</span>
+        {:else}
+          <span class="faint small">Отключение обратимо и работает так же, как в Диспетчере задач</span>
+        {/if}
       </div>
+      {#if isMac}
+        <div class="mac-note faint small">
+          Здесь службы, которые программы устанавливают для автозапуска. Программы, открывающиеся при входе, macOS показывает в своих настройках.
+          <button class="link" onclick={() => api.openSystemPage("login_items").catch((e) => (message = errorText(e)))}>Объекты входа</button>
+        </div>
+      {/if}
       {#each startup ?? [] as item (item.id)}
         <div class="row">
           <div class="row-main">
@@ -100,17 +121,18 @@
               {#if !item.target_exists}<span class="badge badge-expert" title="Программа, которую запускает запись, не найдена">Файл не найден</span>{/if}
               {#if item.scope === "all_users"}<span class="badge badge-muted">Все пользователи</span>{/if}
               {#if item.source === "folder"}<span class="badge badge-muted">Папка автозагрузки</span>{/if}
+              {#if item.source === "launch_daemon"}<span class="badge badge-muted" title="Работает от имени системы, ещё до входа пользователя">Системная служба</span>{/if}
             </div>
             <div class="cmd faint" title={item.command}>{item.command}</div>
           </div>
           {#if item.requires_admin && !app.info?.is_elevated}
-            <span class="faint" title="Нужны права администратора"><Icon name="shield" size={15} /></span>
+            <span class="faint" title={adminHint}><Icon name="shield" size={15} /></span>
           {/if}
           <input
             type="checkbox"
             class="switch"
             checked={item.enabled}
-            disabled={item.requires_admin && !app.info?.is_elevated}
+            disabled={locked(item)}
             onchange={() => toggle(item)}
             aria-label={item.name}
           />
@@ -135,7 +157,7 @@
               {a.name}
               {#if a.broken}<span class="badge badge-expert" title="Запись осталась, а файлов программы нет">Файлы не найдены</span>{/if}
             </div>
-            <div class="faint small">{[a.publisher, a.version].filter(Boolean).join(" · ")}</div>
+            <div class="faint small">{[a.publisher, a.version, isMac ? a.bundle_id : null].filter(Boolean).join(" · ")}</div>
           </div>
           <span class="num muted">{a.size_bytes ? bytes(a.size_bytes) : ""}</span>
           <button class="btn btn-ghost btn-small" disabled={!a.can_uninstall} onclick={() => (uninstalling = a)}>Удалить</button>
@@ -178,10 +200,14 @@
 {#if uninstalling}
   {@const a = uninstalling}
   <Modal title="Удалить {a.name}?" onclose={() => (uninstalling = null)}>
-    <p>Запустится собственный деинсталлятор программы. Trufi Cleaner сам ничего не удаляет на этом шаге.</p>
+    {#if isMac}
+      <p>Программа будет перемещена в Корзину через Finder, её можно будет вернуть. Если у программы есть свой деинсталлятор, запустится он. Для программ из App Store и установленных администратором macOS спросит пароль.</p>
+    {:else}
+      <p>Запустится собственный деинсталлятор программы. Trufi Cleaner сам ничего не удаляет на этом шаге.</p>
+    {/if}
     {#snippet actions()}
       <button class="btn btn-ghost" onclick={() => (uninstalling = null)}>Отмена</button>
-      <button class="btn btn-danger" onclick={() => uninstall(a)}>Запустить удаление</button>
+      <button class="btn btn-danger" onclick={() => uninstall(a)}>{isMac ? "Переместить в Корзину" : "Запустить удаление"}</button>
     {/snippet}
   </Modal>
 {/if}
@@ -197,6 +223,8 @@
   .row-title { display: flex; gap: 8px; align-items: center; font-weight: 650; font-size: 15px; }
   .cmd { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
   .empty { padding: 32px; text-align: center; }
+  .mac-note { padding: 12px 22px; border-bottom: 1px solid var(--divider); line-height: 1.5; }
+  .link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
   .search { display: flex; align-items: center; gap: 8px; color: var(--text-2); flex: 1; max-width: 380px; height: 40px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
   .search input { border: 0; outline: 0; background: none; flex: 1; color: var(--text); }
   .search input::placeholder { color: var(--text-3); }

@@ -119,7 +119,10 @@ export interface InstalledApp {
   size_bytes: number | null;
   broken: boolean;
   can_uninstall: boolean;
+  bundle_id?: string | null;
 }
+
+export type UninstallOutcome = "uninstaller_started" | "moved_to_trash";
 
 export interface SystemInfo {
   os: "windows" | "macos" | "linux";
@@ -127,18 +130,25 @@ export interface SystemInfo {
   host_name: string;
   app_version: string;
   is_elevated: boolean;
+  /** macOS Full Disk Access; null on Windows. */
+  full_disk_access: boolean | null;
   rule_count: number;
   rule_packs: string[];
   rule_errors: string[];
   user_rules_dir: string | null;
 }
 
-export interface WindowsVersion {
+export interface OsVersion {
+  /** "Windows 11", "macOS Sequoia". */
   name: string;
+  /** Windows "25H2" or macOS "15.1.1". */
   display_version: string | null;
+  /** Windows build number; 0 on macOS. */
   build: number;
   revision: number;
   edition: string;
+  /** macOS build ("24B91"). */
+  build_label?: string | null;
 }
 
 export interface PendingUpdate {
@@ -157,7 +167,7 @@ export interface PendingUpdate {
 }
 
 export interface UpdateStatus {
-  version: WindowsVersion | null;
+  version: OsVersion | null;
   servicing_ends: string | null;
   out_of_support: boolean;
   pending: PendingUpdate[];
@@ -187,7 +197,7 @@ export interface DriverInfo {
   update: DriverUpdate | null;
 }
 
-export type SystemPage = "windows_update" | "optional_updates" | "device_manager";
+export type SystemPage = "system_update" | "optional_updates" | "device_manager" | "login_items" | "full_disk_access";
 
 export interface CommandError { code: string; message: string }
 

@@ -20,8 +20,9 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      # Also runs the macOS parsers and rule packs against a fake home folder.
       - run: cargo test -p trufi-core -p trufi-platform
-      - run: cargo clippy -p trufi-core -p trufi-platform -- -D warnings
+      - run: cargo clippy -p trufi-core -p trufi-platform --all-targets -- -D warnings
 
   windows:
     name: Windows checks
@@ -47,3 +48,30 @@ jobs:
         run: cargo test -p trufi-core -p trufi-platform
       - name: Clippy (Windows code paths)
         run: cargo clippy --workspace -- -D warnings
+
+  macos:
+    name: macOS checks
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install UI dependencies
+        working-directory: apps/desktop
+        run: npm ci
+      - name: Rust tests
+        run: cargo test -p trufi-core -p trufi-platform
+      - name: Clippy (macOS code paths)
+        run: cargo clippy --workspace -- -D warnings
+      # Proves tauri.macos.conf.json, Info.plist and the entitlements bundle;
+      # releases build the signed universal version.
+      - name: Bundle the app (debug, unsigned)
+        working-directory: apps/desktop
+        run: npx tauri build --debug --bundles app --no-sign --ci --config '{"bundle":{"createUpdaterArtifacts":false}}'

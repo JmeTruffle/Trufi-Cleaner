@@ -2,6 +2,7 @@
   import Icon from "../components/Icon.svelte";
   import { api } from "../lib/api";
   import { errorText } from "../lib/i18n";
+  import { isMac } from "../lib/os";
   import { app } from "../lib/store.svelte";
 
   let error = $state("");
@@ -20,7 +21,7 @@
   <div class="page-head">
     <div>
       <h1>Настройки</h1>
-      <p>Обновления, права и правила очистки</p>
+      <p>Обновления, {isMac ? "доступ к диску" : "права"} и правила очистки</p>
     </div>
   </div>
 
@@ -50,6 +51,27 @@
     {/if}
   </section>
 
+  {#if isMac}
+  <section class="card row">
+    <div>
+      <div class="card-title">Полный доступ к диску</div>
+      <p class="muted">
+        {#if app.info?.full_disk_access}
+          Разрешён: Trufi Cleaner видит Корзину, кеш Safari, вложения Почты и данные программ из App Store.
+        {:else}
+          Без него macOS не даёт заглянуть в Корзину, кеш Safari, вложения Почты и данные программ из App Store, эти пункты пропускаются.
+          Включите Trufi Cleaner в списке «Полный доступ к диску» и перезапустите приложение.
+        {/if}
+      </p>
+      <p class="faint">Документы, Фото, Почта, iCloud Drive и облачные папки защищены всегда, независимо от доступа.</p>
+    </div>
+    {#if !app.info?.full_disk_access}
+      <button class="btn btn-ghost" onclick={() => api.openSystemPage("full_disk_access").catch((e) => (error = errorText(e)))}>
+        <Icon name="lock" size={16} /> Открыть настройки
+      </button>
+    {/if}
+  </section>
+  {:else}
   <section class="card row">
     <div>
       <div class="card-title">Права администратора</div>
@@ -66,6 +88,7 @@
       <button class="btn btn-ghost" onclick={elevate}><Icon name="shield" size={16} /> Перезапустить как администратор</button>
     {/if}
   </section>
+  {/if}
 
   <section class="card">
     <div class="card-title">Правила очистки</div>

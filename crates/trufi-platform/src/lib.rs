@@ -1,22 +1,29 @@
 //! Concrete [`Platform`] implementations. The app asks for [`current`] and
 //! never names an OS itself.
 //!
-//! * `windows`: the primary target, fully implemented.
-//! * `unix`: macOS and Linux. Enough for development and for the macOS
-//!   port to start from; startup items and app inventory are basic.
+//! * `windows`: Windows 10/11.
+//! * `macos`: macOS 11+.
+//! * `linux`: not a release target; lets the core and the UI be developed
+//!   and tested on any machine.
 
 use trufi_core::platform::Platform;
 
-#[cfg(not(windows))]
-mod unix;
+#[cfg(all(unix, not(target_os = "macos")))]
+mod linux;
+// Built on every Unix in tests so its parsers are checked by Linux CI too.
+#[cfg(any(target_os = "macos", all(unix, test)))]
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+mod macos;
 #[cfg(windows)]
 mod windows;
 
 pub fn current() -> Box<dyn Platform> {
     #[cfg(windows)]
     return Box::new(windows::WindowsPlatform::new());
-    #[cfg(not(windows))]
-    return Box::new(unix::UnixPlatform::new());
+    #[cfg(target_os = "macos")]
+    return Box::new(macos::MacPlatform::new());
+    #[cfg(all(unix, not(target_os = "macos")))]
+    return Box::new(linux::LinuxPlatform::new());
 }
 
 /// Splits a command line into the program path and its arguments:

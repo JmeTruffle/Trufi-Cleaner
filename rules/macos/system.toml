@@ -1,33 +1,94 @@
-# macOS: first draft. The macOS platform layer is not implemented yet;
-# these rules are here so the schema stays cross-platform from day one.
+# macOS: user caches, temporary files, logs, device backups.
+# Schema: docs/RULES.md. %CONTAINERS% exists only with Full Disk Access
+# (see crates/trufi-platform/src/macos/mod.rs).
 
 [pack]
 id = "macos.system"
 name = "macOS"
 os = "macos"
-version = 1
+version = 2
 
 [[rule]]
 id = "mac.trash"
 name = "Корзина"
+description = "Файлы, удалённые в Корзину. Нужен полный доступ к диску: без него macOS не показывает содержимое Корзины."
 category = "system"
 risk = "moderate"
-default = true
 special = "trash"
+default = false
 
 [[rule]]
 id = "mac.user_caches"
 name = "Кеши программ"
-description = "~/Library/Caches. Программы пересоздают их сами."
+description = "~/Library/Caches. Программы пересоздают кеш сами. Файлы младше суток не трогаем."
 category = "system"
 risk = "safe"
 paths = ["~/Library/Caches"]
-exclude = ["com.apple.Safari/**", "CloudKit/**"]
+exclude = ["com.apple.Safari/**", "CloudKit/**", "com.apple.bird/**", "com.apple.nsurlsessiond/**", "com.apple.HomeKit/**", "com.apple.homed/**", "FamilyCircle/**", "com.apple.akd/**", "com.apple.containermanagerd/**", "com.apple.iCloudHelper/**", "com.apple.ap.adprivacyd/**", "com.apple.passd/**", "com.apple.findmy.*/**"]
 min_age_hours = 24
+
+[[rule]]
+id = "mac.temp"
+name = "Временные файлы"
+description = "Личная временная папка ($TMPDIR). Файлы младше трёх суток не трогаем: ими могут пользоваться запущенные программы."
+category = "system"
+risk = "safe"
+paths = ["%DARWIN_USER_DIR%/T"]
+min_age_hours = 72
+
+[[rule]]
+id = "mac.saved_state"
+name = "Сохранённые окна программ"
+description = "Какие окна были открыты при выходе. Программы откроются с чистого листа."
+category = "system"
+risk = "moderate"
+paths = ["~/Library/Saved Application State"]
+
+[[rule]]
+id = "mac.ios_updates"
+name = "Прошивки iPhone и iPad"
+description = "Файлы .ipsw, скачанные Finder или iTunes для обновления устройств. Скачаются снова, если понадобятся."
+category = "system"
+risk = "moderate"
+paths = [
+  "~/Library/iTunes/iPhone Software Updates",
+  "~/Library/iTunes/iPad Software Updates",
+  "~/Library/iTunes/iPod Software Updates",
+]
+
+[[rule]]
+id = "mac.ios_backups"
+name = "Резервные копии iPhone и iPad"
+description = "Локальные копии устройств, сделанные через Finder. Удаляйте только копии устройств, которых у вас больше нет, или если есть копия в iCloud. Список доступен с полным доступом к диску."
+category = "system"
+risk = "expert"
+paths = ["~/Library/Application Support/MobileSync/Backup"]
+keep_newest = 0
+
+[[rule]]
+id = "mac.mail_downloads"
+name = "Вложения, открытые из Почты"
+description = "Копии вложений, которые вы открывали из писем. Сами письма и вложения в них остаются."
+category = "system"
+risk = "safe"
+paths = ["%CONTAINERS%/com.apple.mail/Data/Library/Mail Downloads"]
+
+[[rule]]
+id = "mac.downloads_installers"
+name = "Установщики в Загрузках"
+description = "Образы .dmg и пакеты .pkg в папке «Загрузки». Проверьте список: может быть нужен установщик, который трудно скачать снова."
+category = "apps"
+risk = "expert"
+paths = ["~/Downloads"]
+include = ["*.dmg", "*.pkg", "*.mpkg"]
+max_depth = 1
+min_age_hours = 24
+remove_empty_dirs = false
 
 [[rule]]
 id = "mac.user_logs"
 name = "Журналы программ"
+description = "~/Library/Logs. Журналы младше трёх суток остаются."
 category = "logs"
 risk = "safe"
 paths = ["~/Library/Logs"]
@@ -36,6 +97,7 @@ min_age_hours = 72
 [[rule]]
 id = "mac.crash_reports"
 name = "Отчёты о сбоях"
+description = "Отчёты о сбоях программ. Нужны только для диагностики."
 category = "logs"
 risk = "safe"
 paths = ["~/Library/Logs/DiagnosticReports"]

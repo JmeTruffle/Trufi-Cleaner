@@ -12,6 +12,10 @@ log.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
+[target.'cfg(unix)'.dependencies]
+plist = "1"
+rayon.workspace = true
+
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
 windows = { version = "0.62", features = [

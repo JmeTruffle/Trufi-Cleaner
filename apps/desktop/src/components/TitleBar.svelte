@@ -1,14 +1,19 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { windowControls } from "../lib/api";
+  import { isMac } from "../lib/os";
   import Icon from "./Icon.svelte";
   import Logo from "./Logo.svelte";
 
+  // macOS keeps its own window buttons (red/yellow/green) over our title
+  // bar; Windows gets custom ones on the right.
   let controls = $state<Awaited<ReturnType<typeof windowControls>>>(null);
-  onMount(async () => (controls = await windowControls()));
+  onMount(async () => {
+    if (!isMac) controls = await windowControls();
+  });
 </script>
 
-<header class="titlebar" data-tauri-drag-region>
+<header class="titlebar" class:mac={isMac} data-tauri-drag-region>
   <div class="brand" data-tauri-drag-region>
     <Logo size={20} />
     <span data-tauri-drag-region>Trufi Cleaner</span>
@@ -31,6 +36,8 @@
     padding-left: 16px;
     flex: none;
   }
+  /* Room for the traffic lights (see trafficLightPosition in tauri.macos.conf.json). */
+  .titlebar.mac { padding-left: 86px; }
   .brand {
     display: flex;
     align-items: center;

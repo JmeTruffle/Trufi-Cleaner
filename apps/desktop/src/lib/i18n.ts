@@ -2,6 +2,7 @@
 // Russian first; add another locale by adding a dictionary with the same keys.
 
 import { bytes, duration, percent, plural } from "./format";
+import { isMac, osName, updatesPlace } from "./os";
 import type { Advice, Category, HealthFactor, Risk } from "./types";
 
 export const categoryName: Record<Category, string> = {
@@ -46,8 +47,8 @@ export function factorText(f: HealthFactor): string {
     case "junk": return `Найдено ${bytes(f.value)} ненужных файлов`;
     case "startup_many": return `${f.value} ${plural(f.value, "программа", "программы", "программ")} в автозагрузке`;
     case "uptime_long": return `Компьютер не перезагружался ${duration(f.value * 86400)}`;
-    case "os_unsupported": return "Версия Windows больше не получает обновлений";
-    case "updates_pending": return `${f.value} ${plural(f.value, "обновление Windows ждёт", "обновления Windows ждут", "обновлений Windows ждут")} установки`;
+    case "os_unsupported": return `Версия ${osName} больше не получает обновлений`;
+    case "updates_pending": return `${f.value} ${plural(f.value, `обновление ${osName} ждёт`, `обновления ${osName} ждут`, `обновлений ${osName} ждут`)} установки`;
     case "updates_restart": return "Обновления ждут перезагрузки";
     case "updates_stale": return `Обновления не ставились ${f.value} ${plural(f.value, "день", "дня", "дней")}`;
     case "driver_problems": return `${f.value} ${plural(f.value, "устройство работает", "устройства работают", "устройств работают")} с ошибкой`;
@@ -60,7 +61,7 @@ export function factorText(f: HealthFactor): string {
 export function adviceText(a: Advice): { title: string; detail: string } {
   switch (a.id) {
     case "system_disk_full":
-      return { title: "Мало места на системном диске", detail: `Занято ${percent(a.value)}. Windows и программы начинают тормозить, когда свободно меньше 10%.` };
+      return { title: "Мало места на системном диске", detail: `Занято ${percent(a.value)}. ${osName} и программы начинают тормозить, когда свободно меньше 10%.` };
     case "disk_full":
       return { title: "Диск почти заполнен", detail: `Один из дисков занят на ${percent(a.value)}.` };
     case "memory_high":
@@ -70,19 +71,21 @@ export function adviceText(a: Advice): { title: string; detail: string } {
     case "junk":
       return { title: "Можно освободить место", detail: `Найдено ${bytes(a.value)} кеша и временных файлов.` };
     case "startup_many":
-      return { title: "Много программ в автозагрузке", detail: `${a.value} ${plural(a.value, "программа запускается", "программы запускаются", "программ запускаются")} вместе с Windows и замедляют старт.` };
+      return { title: "Много программ в автозагрузке", detail: `${a.value} ${plural(a.value, "программа запускается", "программы запускаются", "программ запускаются")} вместе с ${osName} и замедляют старт.` };
     case "uptime_long":
       return { title: "Пора перезагрузиться", detail: `Компьютер работает без перезагрузки ${duration(a.value * 86400)}. Перезагрузка освободит память и завершит обновления.` };
     case "process_memory_hog":
       return { title: `${a.subject} занимает много памяти`, detail: `${percent(a.value)} всей оперативной памяти.` };
     case "os_unsupported":
-      return { title: "Windows пора обновить до новой версии", detail: `Сборка ${a.value} больше не получает исправлений безопасности. Установите новую версию через Центр обновления.` };
+      return isMac
+        ? { title: "macOS пора обновить до новой версии", detail: `Эта версия больше не получает исправлений безопасности. Установите новую через ${updatesPlace}.` }
+        : { title: "Windows пора обновить до новой версии", detail: `Сборка ${a.value} больше не получает исправлений безопасности. Установите новую версию через Центр обновления.` };
     case "updates_pending":
-      return { title: "Установите обновления Windows", detail: `${a.value} ${plural(a.value, "обновление ждёт", "обновления ждут", "обновлений ждут")} установки. В них исправления безопасности и стабильности.` };
+      return { title: `Установите обновления ${osName}`, detail: `${a.value} ${plural(a.value, "обновление ждёт", "обновления ждут", "обновлений ждут")} установки. В них исправления безопасности и стабильности.` };
     case "updates_restart":
-      return { title: "Перезагрузите, чтобы завершить обновление", detail: "Windows установила обновления, но применит их только после перезагрузки." };
+      return { title: "Перезагрузите, чтобы завершить обновление", detail: `${osName} установила обновления, но применит их только после перезагрузки.` };
     case "updates_stale":
-      return { title: "Обновления давно не устанавливались", detail: `Последнее успешное обновление было ${a.value} ${plural(a.value, "день", "дня", "дней")} назад. Проверьте Центр обновления.` };
+      return { title: "Обновления давно не устанавливались", detail: `Последнее успешное обновление было ${a.value} ${plural(a.value, "день", "дня", "дней")} назад. Проверьте ${updatesPlace}.` };
     case "driver_problems":
       return { title: "Устройства работают с ошибками", detail: `${a.value} ${plural(a.value, "устройство", "устройства", "устройств")} в Диспетчере устройств с ошибкой. Из-за этого бывают сбои и конфликты.` };
     case "driver_unsigned":
@@ -102,7 +105,7 @@ export const adviceActionLabel = {
   startup: "Автозагрузка",
   processes: "Процессы",
   restart: "Понятно",
-  updates: "Центр обновления",
+  updates: isMac ? "Обновление ПО" : "Центр обновления",
   drivers: "Драйверы",
 };
 

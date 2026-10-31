@@ -1,0 +1,242 @@
+# macOS: application caches. Electron apps keep them in Application Support
+# under the same folder names as on Windows.
+
+[pack]
+id = "macos.apps"
+name = "Программы"
+os = "macos"
+version = 2
+
+[[rule]]
+id = "mac.app.discord.cache"
+name = "Discord: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/discord/Cache",
+  "~/Library/Application Support/discord/Code Cache",
+  "~/Library/Application Support/discord/GPUCache",
+  "~/Library/Application Support/discord/DawnCache",
+  "~/Library/Application Support/discord/DawnGraphiteCache",
+  "~/Library/Application Support/discord/DawnWebGPUCache",
+  "~/Library/Application Support/discord/Service Worker/CacheStorage",
+  "~/Library/Application Support/discord/Service Worker/ScriptCache",
+  "~/Library/Application Support/discord/Crashpad/completed",
+]
+close_processes = ["Discord", "Discord Helper"]
+
+[[rule]]
+id = "mac.app.slack.cache"
+name = "Slack: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Slack/Cache",
+  "~/Library/Application Support/Slack/Code Cache",
+  "~/Library/Application Support/Slack/GPUCache",
+  "~/Library/Application Support/Slack/DawnCache",
+  "~/Library/Application Support/Slack/DawnGraphiteCache",
+  "~/Library/Application Support/Slack/DawnWebGPUCache",
+  "~/Library/Application Support/Slack/Service Worker/CacheStorage",
+  "~/Library/Application Support/Slack/Service Worker/ScriptCache",
+  "~/Library/Application Support/Slack/Crashpad/completed",
+  "~/Library/Application Support/Slack/logs",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Cache",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Code Cache",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/GPUCache",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/DawnCache",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/DawnGraphiteCache",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/DawnWebGPUCache",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Service Worker/CacheStorage",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Service Worker/ScriptCache",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Crashpad/completed",
+  "%CONTAINERS%/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/logs",
+]
+close_processes = ["Slack", "Slack Helper"]
+
+[[rule]]
+id = "mac.app.vscode.cache"
+name = "Visual Studio Code: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Code/Cache",
+  "~/Library/Application Support/Code/Code Cache",
+  "~/Library/Application Support/Code/GPUCache",
+  "~/Library/Application Support/Code/DawnCache",
+  "~/Library/Application Support/Code/DawnGraphiteCache",
+  "~/Library/Application Support/Code/DawnWebGPUCache",
+  "~/Library/Application Support/Code/Service Worker/CacheStorage",
+  "~/Library/Application Support/Code/Service Worker/ScriptCache",
+  "~/Library/Application Support/Code/Crashpad/completed",
+  "~/Library/Application Support/Code/CachedData",
+  "~/Library/Application Support/Code/CachedExtensionVSIXs",
+  "~/Library/Application Support/Code/logs",
+]
+close_processes = ["Code", "Electron", "Code Helper"]
+
+[[rule]]
+id = "mac.app.cursor.cache"
+name = "Cursor: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Cursor/Cache",
+  "~/Library/Application Support/Cursor/Code Cache",
+  "~/Library/Application Support/Cursor/GPUCache",
+  "~/Library/Application Support/Cursor/DawnCache",
+  "~/Library/Application Support/Cursor/DawnGraphiteCache",
+  "~/Library/Application Support/Cursor/DawnWebGPUCache",
+  "~/Library/Application Support/Cursor/Service Worker/CacheStorage",
+  "~/Library/Application Support/Cursor/Service Worker/ScriptCache",
+  "~/Library/Application Support/Cursor/Crashpad/completed",
+  "~/Library/Application Support/Cursor/CachedData",
+  "~/Library/Application Support/Cursor/CachedExtensionVSIXs",
+  "~/Library/Application Support/Cursor/logs",
+]
+close_processes = ["Cursor", "Cursor Helper"]
+
+[[rule]]
+id = "mac.app.notion.cache"
+name = "Notion: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Notion/Cache",
+  "~/Library/Application Support/Notion/Code Cache",
+  "~/Library/Application Support/Notion/GPUCache",
+  "~/Library/Application Support/Notion/DawnCache",
+  "~/Library/Application Support/Notion/DawnGraphiteCache",
+  "~/Library/Application Support/Notion/DawnWebGPUCache",
+  "~/Library/Application Support/Notion/Service Worker/CacheStorage",
+  "~/Library/Application Support/Notion/Service Worker/ScriptCache",
+  "~/Library/Application Support/Notion/Crashpad/completed",
+  "~/Library/Application Support/Notion/logs",
+]
+close_processes = ["Notion", "Notion Helper"]
+
+[[rule]]
+id = "mac.app.obsidian.cache"
+name = "Obsidian: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/obsidian/Cache",
+  "~/Library/Application Support/obsidian/Code Cache",
+  "~/Library/Application Support/obsidian/GPUCache",
+  "~/Library/Application Support/obsidian/DawnCache",
+  "~/Library/Application Support/obsidian/DawnGraphiteCache",
+  "~/Library/Application Support/obsidian/DawnWebGPUCache",
+  "~/Library/Application Support/obsidian/Service Worker/CacheStorage",
+  "~/Library/Application Support/obsidian/Service Worker/ScriptCache",
+  "~/Library/Application Support/obsidian/Crashpad/completed",
+]
+close_processes = ["Obsidian", "Obsidian Helper"]
+
+[[rule]]
+id = "mac.app.figma.cache"
+name = "Figma: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Figma/DesktopProfile/*/Cache",
+  "~/Library/Application Support/Figma/DesktopProfile/*/Code Cache",
+  "~/Library/Application Support/Figma/DesktopProfile/*/GPUCache",
+  "~/Library/Application Support/Figma/DesktopProfile/*/DawnCache",
+  "~/Library/Application Support/Figma/DesktopProfile/*/DawnGraphiteCache",
+  "~/Library/Application Support/Figma/DesktopProfile/*/DawnWebGPUCache",
+  "~/Library/Application Support/Figma/DesktopProfile/*/Service Worker/CacheStorage",
+  "~/Library/Application Support/Figma/DesktopProfile/*/Service Worker/ScriptCache",
+  "~/Library/Application Support/Figma/DesktopProfile/*/Crashpad/completed",
+]
+close_processes = ["Figma", "Figma Helper"]
+
+[[rule]]
+id = "mac.app.postman.cache"
+name = "Postman: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Postman/Cache",
+  "~/Library/Application Support/Postman/Code Cache",
+  "~/Library/Application Support/Postman/GPUCache",
+  "~/Library/Application Support/Postman/DawnCache",
+  "~/Library/Application Support/Postman/DawnGraphiteCache",
+  "~/Library/Application Support/Postman/DawnWebGPUCache",
+  "~/Library/Application Support/Postman/Service Worker/CacheStorage",
+  "~/Library/Application Support/Postman/Service Worker/ScriptCache",
+  "~/Library/Application Support/Postman/Crashpad/completed",
+  "~/Library/Application Support/Postman/logs",
+]
+close_processes = ["Postman", "Postman Helper"]
+
+[[rule]]
+id = "mac.app.teams.cache"
+name = "Microsoft Teams: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Microsoft/Teams/Cache",
+  "~/Library/Application Support/Microsoft/Teams/Code Cache",
+  "~/Library/Application Support/Microsoft/Teams/GPUCache",
+  "~/Library/Application Support/Microsoft/Teams/DawnCache",
+  "~/Library/Application Support/Microsoft/Teams/DawnGraphiteCache",
+  "~/Library/Application Support/Microsoft/Teams/DawnWebGPUCache",
+  "~/Library/Application Support/Microsoft/Teams/Service Worker/CacheStorage",
+  "~/Library/Application Support/Microsoft/Teams/Service Worker/ScriptCache",
+  "~/Library/Application Support/Microsoft/Teams/Crashpad/completed",
+  "%CONTAINERS%/com.microsoft.teams2/Data/Library/Caches",
+]
+close_processes = ["Microsoft Teams", "MSTeams"]
+
+[[rule]]
+id = "mac.app.telegram.media_cache"
+name = "Telegram Desktop: кеш медиа"
+description = "Загруженные фото, видео и стикеры. Telegram скачает их снова при просмотре. Переписка хранится в облаке и не пострадает."
+category = "apps"
+risk = "moderate"
+paths = [
+  "~/Library/Application Support/Telegram Desktop/tdata/user_data",
+  "~/Library/Application Support/Telegram Desktop/tdata/emoji",
+]
+close_processes = ["Telegram"]
+
+[[rule]]
+id = "mac.app.spotify.cache"
+name = "Spotify: кеш"
+description = "Кеш потоковой музыки. Скачанные для офлайна треки остаются."
+category = "apps"
+risk = "safe"
+paths = ["~/Library/Caches/com.spotify.client"]
+close_processes = ["Spotify", "Spotify Helper"]
+
+[[rule]]
+id = "mac.app.adobe.media_cache"
+name = "Adobe: медиакеш"
+description = "Кеш Premiere Pro, After Effects и Audition. Проекты откроются, но первое воспроизведение будет медленнее."
+category = "apps"
+risk = "moderate"
+paths = [
+  "~/Library/Application Support/Adobe/Common/Media Cache Files",
+  "~/Library/Application Support/Adobe/Common/Media Cache",
+  "~/Library/Application Support/Adobe/Common/Peak Files",
+]
+close_processes = ["Adobe Premiere Pro", "After Effects", "Adobe Audition"]
+
+[[rule]]
+id = "mac.app.unityhub.cache"
+name = "Unity Hub: кеш"
+category = "apps"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/UnityHub/Cache",
+  "~/Library/Application Support/UnityHub/Code Cache",
+  "~/Library/Application Support/UnityHub/GPUCache",
+  "~/Library/Application Support/UnityHub/DawnCache",
+  "~/Library/Application Support/UnityHub/DawnGraphiteCache",
+  "~/Library/Application Support/UnityHub/DawnWebGPUCache",
+  "~/Library/Application Support/UnityHub/Service Worker/CacheStorage",
+  "~/Library/Application Support/UnityHub/Service Worker/ScriptCache",
+  "~/Library/Application Support/UnityHub/Crashpad/completed",
+]
+close_processes = ["Unity Hub"]

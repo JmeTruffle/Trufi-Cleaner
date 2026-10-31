@@ -114,7 +114,7 @@
           <b>Windows Update предлагает {offers.length} {plural(offers.length, "драйвер", "драйвера", "драйверов")}</b>
           <div class="muted">Это версии, проверенные Microsoft на совместимость. Ставить их безопаснее всего.</div>
         </div>
-        <button class="btn btn-ghost btn-small" onclick={() => open(offers.some((o) => o.optional) ? "optional_updates" : "windows_update")}>Установить</button>
+        <button class="btn btn-ghost btn-small" onclick={() => open(offers.some((o) => o.optional) ? "optional_updates" : "system_update")}>Установить</button>
       </section>
     {/if}
 
@@ -150,7 +150,7 @@
           {#if hasProblem(d)}
             <button class="btn btn-ghost btn-small" onclick={() => open("device_manager")}>Открыть</button>
           {:else if d.update}
-            <button class="btn btn-ghost btn-small" onclick={() => open(d.update?.optional ? "optional_updates" : "windows_update")}>Обновить</button>
+            <button class="btn btn-ghost btn-small" onclick={() => open(d.update?.optional ? "optional_updates" : "system_update")}>Обновить</button>
           {/if}
         </div>
       {:else}

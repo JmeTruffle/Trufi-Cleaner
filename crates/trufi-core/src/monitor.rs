@@ -134,7 +134,7 @@ impl Monitor {
             .disks
             .list()
             .iter()
-            .filter(|d| d.total_space() > 0)
+            .filter(|d| d.total_space() > 0 && !is_hidden_volume(d.mount_point()))
             .map(|d| DiskInfo {
                 name: d.name().to_string_lossy().into_owned(),
                 mount: d.mount_point().to_path_buf(),
@@ -181,6 +181,15 @@ impl Monitor {
     }
 }
 
+/// macOS mounts service volumes next to the system one (the Data volume
+/// shares its space with `/`, plus VM, Preboot, Xcode simulator runtimes).
+/// They are not disks a person thinks about.
+fn is_hidden_volume(mount: &std::path::Path) -> bool {
+    ["/System/Volumes/", "/private/var/vm", "/Library/Developer/CoreSimulator/"]
+        .iter()
+        .any(|p| mount.to_string_lossy().starts_with(p))
+}
+
 fn is_idle_pseudo_process(name: &str) -> bool {
     matches!(name.to_lowercase().as_str(), "system idle process" | "idle" | "memory compression")
 }
@@ -198,6 +207,16 @@ pub fn running_process_names() -> HashSet<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hides_macos_service_volumes() {
+        use std::path::Path;
+        assert!(is_hidden_volume(Path::new("/System/Volumes/Data")));
+        assert!(is_hidden_volume(Path::new("/Library/Developer/CoreSimulator/Volumes/iOS_22A3351")));
+        assert!(!is_hidden_volume(Path::new("/")));
+        assert!(!is_hidden_volume(Path::new("/Volumes/Backup")));
+        assert!(!is_hidden_volume(Path::new("C:\\")));
+    }
 
     #[test]
     fn snapshot_is_sane() {

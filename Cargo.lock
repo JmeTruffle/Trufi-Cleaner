@@ -4451,6 +4451,8 @@ name = "trufi-platform"
 version = "0.1.0"
 dependencies = [
  "log",
+ "plist",
+ "rayon",
  "serde",
  "serde_json",
  "sysinfo",

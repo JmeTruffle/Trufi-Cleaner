@@ -22,7 +22,7 @@ pub struct AppState {
     pub last_snapshot: Mutex<Option<SystemSnapshot>>,
     pub last_scan: Mutex<Option<Arc<ScanResult>>>,
     pub startup_enabled: Mutex<Option<usize>>,
-    /// Last Windows Update check; the check is slow, so the UI asks for a
+    /// Last OS update check; the check is slow, so the UI asks for a
     /// fresh one only on start and on demand.
     pub updates: Mutex<Option<UpdateStatus>>,
     pub drivers: Mutex<Option<Vec<DriverInfo>>>,

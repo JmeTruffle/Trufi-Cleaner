@@ -58,7 +58,7 @@
     },
     "createUpdaterArtifacts": true,
     "publisher": "Trufi",
-    "shortDescription": "Очистка и оптимизация ПК"
+    "shortDescription": "Очистка и оптимизация компьютера"
   },
   "plugins": {
     "updater": {
