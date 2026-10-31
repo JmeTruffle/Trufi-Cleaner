@@ -348,7 +348,8 @@
   .spacer { flex: 1; }
   .actionbar {
     position: sticky;
-    bottom: 0;
+    /* Stuck at the page's bottom inset, on the sidebar's bottom line. */
+    bottom: 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;

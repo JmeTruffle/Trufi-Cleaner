@@ -18,9 +18,10 @@
           "x": 18,
           "y": 13
         },
-        "transparent": true,
+        "transparent": false,
         "shadow": true,
-        "theme": "Dark"
+        "theme": "Dark",
+        "backgroundColor": "#4a72d4"
       }
     ]
   },
