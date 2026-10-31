@@ -358,20 +358,16 @@ impl<'a> Scanner<'a> {
     }
 
     fn scan_special(&self, rule: &Rule, special: Special) -> Option<RuleScan> {
-        match special {
-            Special::Trash => {
-                let (bytes, items) = self.platform.trash_info().ok().flatten()?;
-                let mut finding = self.finding_for(rule, Vec::new());
-                finding.bytes = bytes;
-                finding.files = items;
-                Some(RuleScan {
-                    finding,
-                    entries: Vec::new(),
-                    rule: Some(rule.clone()),
-                    special: Some(special),
-                })
-            }
-        }
+        let (bytes, items) = self.platform.special_info(special).ok().flatten()?;
+        let mut finding = self.finding_for(rule, Vec::new());
+        finding.bytes = bytes;
+        finding.files = items;
+        Some(RuleScan {
+            finding,
+            entries: Vec::new(),
+            rule: Some(rule.clone()),
+            special: Some(special),
+        })
     }
 }
 

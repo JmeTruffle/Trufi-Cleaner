@@ -3,6 +3,7 @@
 //! state and exposes commands.
 
 mod commands;
+mod glass;
 mod state;
 
 use state::AppState;
@@ -34,6 +35,7 @@ pub fn run() {
             commands::uninstall_app,
             commands::relaunch_elevated,
             commands::reveal_path,
+            glass::set_glass_frame,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Trufi Cleaner");

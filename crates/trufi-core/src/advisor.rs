@@ -48,6 +48,8 @@ pub fn advise(s: &SystemSnapshot, health: &Health, scanned: bool) -> Vec<Advice>
             "system_disk_full" => (Severity::Warning, Some(AdviceAction::Scan)),
             "disk_full" => (Severity::Info, None),
             "memory_high" => (Severity::Warning, Some(AdviceAction::Processes)),
+            "memory_pressure" if f.penalty >= 20 => (Severity::Critical, Some(AdviceAction::Processes)),
+            "memory_pressure" => (Severity::Warning, Some(AdviceAction::Processes)),
             "cpu_high" => (Severity::Warning, Some(AdviceAction::Processes)),
             "junk" => (Severity::Warning, Some(AdviceAction::Clean)),
             "startup_many" => (Severity::Info, Some(AdviceAction::Startup)),
@@ -62,7 +64,7 @@ pub fn advise(s: &SystemSnapshot, health: &Health, scanned: bool) -> Vec<Advice>
             _ => (Severity::Info, None),
         };
         let subject = match f.id.as_str() {
-            "memory_high" => s.top_by_memory.first().map(|p| p.name.clone()),
+            "memory_high" | "memory_pressure" => s.top_by_memory.first().map(|p| p.name.clone()),
             "cpu_high" => s.top_by_cpu.first().map(|p| p.name.clone()),
             _ => None,
         };
@@ -71,7 +73,7 @@ pub fn advise(s: &SystemSnapshot, health: &Health, scanned: bool) -> Vec<Advice>
 
     // A single process eating a lot of memory deserves a mention even when
     // the machine as a whole is fine.
-    if s.memory_total > 0 && !out.iter().any(|a| a.id == "memory_high") {
+    if s.memory_total > 0 && !out.iter().any(|a| a.id == "memory_high" || a.id == "memory_pressure") {
         if let Some(p) = s.top_by_memory.first() {
             let share = p.memory_bytes as f64 / s.memory_total as f64 * 100.0;
             if share >= 30.0 {

@@ -106,7 +106,8 @@ pub fn system_info(app: AppHandle, state: State<'_, AppState>) -> SystemInfo {
 #[tauri::command]
 pub async fn snapshot(app: AppHandle) -> CmdResult<SystemSnapshot> {
     blocking(&app, |state| {
-        let snap = state.monitor.lock().unwrap().snapshot();
+        let mut snap = state.monitor.lock().unwrap().snapshot();
+        snap.memory_pressure = state.platform.memory_pressure();
         let mut hist = state.cpu_history.lock().unwrap();
         if hist.len() == CPU_HISTORY {
             hist.pop_front();
@@ -129,7 +130,11 @@ pub async fn health(app: AppHandle) -> CmdResult<HealthReport> {
     blocking(&app, |state| {
         let snap = match state.last_snapshot.lock().unwrap().clone() {
             Some(s) => s,
-            None => state.monitor.lock().unwrap().snapshot(),
+            None => {
+                let mut s = state.monitor.lock().unwrap().snapshot();
+                s.memory_pressure = state.platform.memory_pressure();
+                s
+            }
         };
         let hist = state.cpu_history.lock().unwrap();
         let cpu_avg = if hist.is_empty() {
@@ -140,8 +145,7 @@ pub async fn health(app: AppHandle) -> CmdResult<HealthReport> {
         let scan = state.last_scan.lock().unwrap().clone();
         let mut startup = *state.startup_enabled.lock().unwrap();
         if startup.is_none() {
-            if let Ok(items) = state.platform.startup_items() {
-                let n = items.iter().filter(|i| i.enabled).count();
+            if let Ok(n) = state.platform.startup_enabled_count() {
                 startup = Some(n);
                 *state.startup_enabled.lock().unwrap() = startup;
             }

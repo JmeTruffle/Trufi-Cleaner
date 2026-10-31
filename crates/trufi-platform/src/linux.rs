@@ -105,6 +105,10 @@ impl Platform for LinuxPlatform {
         Ok(Some(dir_size(&dir)))
     }
 
+    fn move_to_trash(&self, paths: &[PathBuf]) -> Result<()> {
+        crate::move_to_trash(paths)
+    }
+
     fn empty_trash(&self) -> Result<()> {
         for sub in ["files", "info"] {
             let Ok(rd) = std::fs::read_dir(self.trash_dir().join(sub)) else { continue };

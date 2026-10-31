@@ -223,6 +223,10 @@ impl Platform for WindowsPlatform {
         shell::recycle_bin_info().map(Some)
     }
 
+    fn move_to_trash(&self, paths: &[PathBuf]) -> Result<()> {
+        crate::move_to_trash(paths)
+    }
+
     fn empty_trash(&self) -> Result<()> {
         shell::empty_recycle_bin()
     }

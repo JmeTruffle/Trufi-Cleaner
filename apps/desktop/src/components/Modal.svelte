@@ -18,6 +18,7 @@
     inset: 0;
     background: rgba(20, 30, 80, 0.4);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: grid;
     place-items: center;
     z-index: 50;

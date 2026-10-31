@@ -11,10 +11,12 @@ sysinfo.workspace = true
 log.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+trash = { version = "5", default-features = false, features = ["coinit_apartmentthreaded"] }
 
 [target.'cfg(unix)'.dependencies]
 plist = "1"
 rayon.workspace = true
+libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"

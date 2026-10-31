@@ -6,12 +6,16 @@
 mod apps;
 mod cmd;
 mod launchd;
+mod login_items;
+mod specials;
 mod updates;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use trufi_core::model::{InstalledApp, StartupItem, UninstallOutcome};
+use trufi_core::monitor::{MemoryPressure, PressureLevel};
 use trufi_core::platform::{LeftoverRoots, OsFamily, Platform, SystemPage};
+use trufi_core::rules::Special;
 use trufi_core::updates::{macos_name, UpdateStatus};
 use trufi_core::Result;
 
@@ -21,6 +25,9 @@ pub struct MacPlatform {
     user_dir: Option<PathBuf>,
     major: u32,
     app_sizes: apps::SizeCache,
+    /// Enabled login items at the last listing. Listing asks for permission
+    /// to control System Events, so the health score reuses this.
+    login_enabled: std::sync::Mutex<Option<usize>>,
 }
 
 impl MacPlatform {
@@ -32,7 +39,7 @@ impl MacPlatform {
             .and_then(|t| t.parent().map(Path::to_path_buf))
             .filter(|d| d.starts_with("/private/var/folders"));
         let major = sysinfo::System::os_version().map(|v| updates::major_of(&v)).unwrap_or(0);
-        MacPlatform { home, user_dir, major, app_sizes: Default::default() }
+        MacPlatform { home, user_dir, major, app_sizes: Default::default(), login_enabled: Default::default() }
     }
 
     fn lib(&self, rel: &str) -> PathBuf {
@@ -42,6 +49,47 @@ impl MacPlatform {
     fn trash_dir(&self) -> PathBuf {
         self.home.join(".Trash")
     }
+
+    /// Our own data (the Tauri app config dir uses the same path).
+    fn data_dir(&self) -> PathBuf {
+        self.lib("Application Support/app.trufi.cleaner")
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn sysctl_i32(name: &str) -> Option<i32> {
+    let name = std::ffi::CString::new(name).ok()?;
+    let mut value: i32 = 0;
+    let mut len = std::mem::size_of::<i32>();
+    // SAFETY: the buffer is an i32 and `len` says so; sysctlbyname writes at
+    // most `len` bytes.
+    let r = unsafe {
+        libc::sysctlbyname(
+            name.as_ptr(),
+            (&mut value as *mut i32).cast(),
+            &mut len,
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    (r == 0).then_some(value)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn sysctl_i32(_name: &str) -> Option<i32> {
+    None
+}
+
+/// `kern.memorystatus_vm_pressure_level`: 1 normal, 2 warning, 4 critical.
+/// `kern.memorystatus_level`: percent of memory macOS considers free.
+pub fn pressure_from(level: i32, free_percent: i32) -> Option<MemoryPressure> {
+    let level = match level {
+        1 => PressureLevel::Normal,
+        2 => PressureLevel::Warning,
+        4 => PressureLevel::Critical,
+        _ => return None,
+    };
+    Some(MemoryPressure { level, percent: (100 - free_percent.clamp(0, 100)) as f32 })
 }
 
 /// Size and file count of a folder; `None` when macOS refuses to list it
@@ -179,16 +227,57 @@ impl Platform for MacPlatform {
     }
 
     fn startup_items(&self) -> Result<Vec<StartupItem>> {
-        Ok(launchd::list(&self.home))
+        let mut items = login_items::list(&self.data_dir());
+        *self.login_enabled.lock().unwrap() = Some(items.iter().filter(|i| i.enabled).count());
+        items.extend(launchd::list(&self.home));
+        Ok(items)
+    }
+
+    fn startup_enabled_count(&self) -> Result<usize> {
+        let agents = launchd::list(&self.home).iter().filter(|i| i.enabled).count();
+        Ok(agents + self.login_enabled.lock().unwrap().unwrap_or(0))
     }
 
     fn set_startup_enabled(&self, id: &str, enabled: bool) -> Result<()> {
-        launchd::set_enabled(id, enabled, &self.home)
+        if id.starts_with(login_items::ID_PREFIX) {
+            login_items::set_enabled(id, enabled, &self.data_dir())
+        } else {
+            launchd::set_enabled(id, enabled, &self.home)
+        }
+    }
+
+    fn special_info(&self, special: Special) -> Result<Option<(u64, u64)>> {
+        Ok(match special {
+            Special::Trash => dir_size(&self.trash_dir()),
+            Special::TmSnapshots => specials::tm_info(),
+            Special::Simulators => specials::simulators_info(),
+            Special::DockerBuildCache => specials::docker_info(&self.home),
+        })
+    }
+
+    fn special_clean(&self, special: Special) -> Result<()> {
+        match special {
+            Special::Trash => self.empty_trash(),
+            Special::TmSnapshots => specials::tm_clean(),
+            Special::Simulators => specials::simulators_clean(),
+            Special::DockerBuildCache => specials::docker_clean(&self.home),
+        }
+    }
+
+    fn memory_pressure(&self) -> Option<MemoryPressure> {
+        pressure_from(
+            sysctl_i32("kern.memorystatus_vm_pressure_level")?,
+            sysctl_i32("kern.memorystatus_level")?,
+        )
     }
 
     fn trash_info(&self) -> Result<Option<(u64, u64)>> {
         // `None` without Full Disk Access: the UI explains how to grant it.
         Ok(dir_size(&self.trash_dir()))
+    }
+
+    fn move_to_trash(&self, paths: &[PathBuf]) -> Result<()> {
+        crate::move_to_trash(paths)
     }
 
     fn empty_trash(&self) -> Result<()> {
@@ -244,12 +333,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn memory_pressure_levels() {
+        assert_eq!(pressure_from(1, 70), Some(MemoryPressure { level: PressureLevel::Normal, percent: 30.0 }));
+        assert_eq!(pressure_from(4, 5).unwrap().level, PressureLevel::Critical);
+        assert_eq!(pressure_from(3, 50), None);
+    }
+
+    #[test]
     fn protection_and_roots() {
         let p = MacPlatform {
             home: "/Users/u".into(),
             user_dir: Some("/private/var/folders/ab/xyz".into()),
             major: 15,
             app_sizes: Default::default(),
+            login_enabled: Default::default(),
         };
         let vars = p.path_vars();
         let guard = trufi_core::safety::SafetyGuard::new(p.protected_paths(), vars.values().cloned().collect());
@@ -298,7 +395,13 @@ mod tests {
         write(&home.join("Downloads/Setup.dmg"), 900, 48);
         write(&home.join("Downloads/photo.jpg"), 900, 48);
 
-        let platform = MacPlatform { home: home.clone(), user_dir: None, major: 15, app_sizes: Default::default() };
+        let platform = MacPlatform {
+            home: home.clone(),
+            user_dir: None,
+            major: 15,
+            app_sizes: Default::default(),
+            login_enabled: Default::default(),
+        };
         let rules = RuleSet::builtin("macos").unwrap();
         let scanner = Scanner::new(&platform);
         let summary = scanner.scan(&rules.rules, ScanOptions::default(), &|_| {}).summary();

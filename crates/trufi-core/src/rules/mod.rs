@@ -41,6 +41,14 @@ fn yes() -> bool {
 pub enum Special {
     /// The OS trash / Recycle Bin, emptied through the platform API.
     Trash,
+    /// macOS: local Time Machine snapshots on the system volume. macOS does
+    /// not report their size, only how many there are.
+    TmSnapshots,
+    /// macOS: Xcode simulators whose runtime is no longer installed
+    /// (`xcrun simctl delete unavailable`).
+    Simulators,
+    /// Docker build cache (`docker builder prune`).
+    DockerBuildCache,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

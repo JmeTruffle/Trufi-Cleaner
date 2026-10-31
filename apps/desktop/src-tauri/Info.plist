@@ -4,7 +4,7 @@
 <dict>
   <!-- Merged into the app's Info.plist by the Tauri bundler (macOS only). -->
   <key>NSAppleEventsUsageDescription</key>
-  <string>Trufi Cleaner просит Finder переместить удаляемую программу в Корзину и спрашивает пароль администратора для системных служб автозагрузки.</string>
+  <string>Trufi Cleaner просит Finder перемещать удаляемые программы и файлы в Корзину (чтобы их можно было вернуть), а System Events — показывать и переключать объекты входа.</string>
   <key>CFBundleDevelopmentRegion</key>
   <string>ru</string>
   <key>LSApplicationCategoryType</key>

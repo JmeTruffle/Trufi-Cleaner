@@ -14,16 +14,21 @@
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
         "acceptFirstMouse": true,
-        "trafficLightPosition": { "x": 18, "y": 13 },
-        "transparent": false,
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 13
+        },
+        "transparent": true,
         "shadow": true,
-        "theme": "Dark",
-        "backgroundColor": "#4a72d4"
+        "theme": "Dark"
       }
     ]
   },
   "bundle": {
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "category": "Utility",
     "macOS": {
       "minimumSystemVersion": "11.0",

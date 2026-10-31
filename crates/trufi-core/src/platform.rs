@@ -5,6 +5,8 @@
 
 use crate::drivers::DriverInfo;
 use crate::model::{InstalledApp, StartupItem, UninstallOutcome};
+use crate::monitor::MemoryPressure;
+use crate::rules::Special;
 use crate::updates::UpdateStatus;
 use crate::Result;
 use std::collections::HashMap;
@@ -117,10 +119,46 @@ pub trait Platform: Send + Sync {
 
     fn set_startup_enabled(&self, id: &str, enabled: bool) -> Result<()>;
 
+    /// Enabled startup items, for the health score. Must not ask the user
+    /// anything (macOS: no Automation prompt at app start).
+    fn startup_enabled_count(&self) -> Result<usize> {
+        Ok(self.startup_items()?.iter().filter(|i| i.enabled).count())
+    }
+
     /// Size of the OS trash in bytes and number of items, when the OS can tell.
     fn trash_info(&self) -> Result<Option<(u64, u64)>>;
 
     fn empty_trash(&self) -> Result<()>;
+
+    /// Size and item count of something a `special` rule cleans through
+    /// the OS (`None`: not present on this machine). Bytes may be 0 when
+    /// the OS cannot tell (Time Machine snapshots).
+    fn special_info(&self, special: Special) -> Result<Option<(u64, u64)>> {
+        match special {
+            Special::Trash => self.trash_info(),
+            _ => Ok(None),
+        }
+    }
+
+    fn special_clean(&self, special: Special) -> Result<()> {
+        match special {
+            Special::Trash => self.empty_trash(),
+            _ => Err(crate::Error::Unsupported("special cleaning")),
+        }
+    }
+
+    /// Moves files and folders to the OS trash instead of deleting them, so
+    /// the user can put them back.
+    fn move_to_trash(&self, _paths: &[PathBuf]) -> Result<()> {
+        Err(crate::Error::Unsupported("move_to_trash"))
+    }
+
+    /// macOS memory pressure, the measure macOS itself uses: memory "used"
+    /// by caches is free for the asking there, so a high used share means
+    /// little.
+    fn memory_pressure(&self) -> Option<MemoryPressure> {
+        None
+    }
 
     /// Installed version and what the OS update service has waiting. Slow:
     /// it asks the update service, which goes online.
