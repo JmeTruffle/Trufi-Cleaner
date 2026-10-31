@@ -152,3 +152,20 @@ paths = [
   "~/Library/Caches/JetBrains/*/tmp",
   "~/Library/Logs/JetBrains",
 ]
+
+[[rule]]
+id = "mac.dev.simulators.unavailable"
+name = "Xcode: неработающие симуляторы"
+description = "Симуляторы, для которых больше нет установленной версии iOS. Запустить их всё равно нельзя (xcrun simctl delete unavailable)."
+category = "developer"
+risk = "safe"
+special = "simulators"
+close_processes = ["Simulator"]
+
+[[rule]]
+id = "mac.dev.docker.build_cache"
+name = "Docker: кеш сборки"
+description = "Слои, оставшиеся от сборок образов (docker builder prune). Образы и контейнеры остаются, следующая сборка будет дольше. Docker Desktop должен быть запущен."
+category = "developer"
+risk = "moderate"
+special = "docker_build_cache"

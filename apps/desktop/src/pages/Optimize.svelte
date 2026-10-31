@@ -109,7 +109,8 @@
       </div>
       {#if isMac}
         <div class="mac-note faint small">
-          Здесь службы, которые программы устанавливают для автозапуска. Программы, открывающиеся при входе, macOS показывает в своих настройках.
+          Объекты входа и службы, которые программы ставят для автозапуска. Выключенный объект входа Trufi Cleaner запоминает и может вернуть.
+          Программы, добавленные через новые механизмы macOS, видны только в Системных настройках:
           <button class="link" onclick={() => api.openSystemPage("login_items").catch((e) => (message = errorText(e)))}>Объекты входа</button>
         </div>
       {/if}
@@ -121,6 +122,7 @@
               {#if !item.target_exists}<span class="badge badge-expert" title="Программа, которую запускает запись, не найдена">Файл не найден</span>{/if}
               {#if item.scope === "all_users"}<span class="badge badge-muted">Все пользователи</span>{/if}
               {#if item.source === "folder"}<span class="badge badge-muted">Папка автозагрузки</span>{/if}
+              {#if item.source === "login_item"}<span class="badge badge-muted" title="Открывается при входе в систему">Объект входа</span>{/if}
               {#if item.source === "launch_daemon"}<span class="badge badge-muted" title="Работает от имени системы, ещё до входа пользователя">Системная служба</span>{/if}
             </div>
             <div class="cmd faint" title={item.command}>{item.command}</div>

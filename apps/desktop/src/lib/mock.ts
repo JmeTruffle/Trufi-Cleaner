@@ -34,6 +34,12 @@ const demoHealth: Record<string, { id: string; penalty: number; value: number }[
   ],
 };
 let scanned: ScanSummary | null = null;
+const macLogin: StartupItem[] = [["Telegram", "/Applications/Telegram.app", true], ["Spotify", "/Applications/Spotify.app", false]].map(
+  ([name, path, enabled]) => ({
+    id: `login|${path}`, name: name as string, command: path as string, source: "login_item", scope: "current_user",
+    enabled: enabled as boolean, requires_admin: false, target_exists: true,
+  }),
+);
 const macStartup: StartupItem[] = [
   ["Google Updater", "com.google.GoogleUpdater.wake", "~/Library/Application Support/Google/GoogleUpdater/Current/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake", true, "gui", true],
   ["Zoom", "us.zoom.updater", "/Library/Application Support/zoom.us/ZoomUpdater.app/Contents/MacOS/ZoomUpdater", true, "gui", true],
@@ -73,7 +79,7 @@ const windowsStartup: StartupItem[] = [
   requires_admin: i >= 10,
   target_exists: exists as boolean,
 }));
-const startup = isMac ? macStartup : windowsStartup;
+const startup = isMac ? [...macLogin, ...macStartup] : windowsStartup;
 
 function snapshot(): SystemSnapshot {
   cpu = Math.max(3, Math.min(97, cpu + (Math.random() - 0.5) * 14));
@@ -142,6 +148,7 @@ function macSnapshot(): Partial<SystemSnapshot> {
       { name: "Finder", instances: 1, cpu_percent: 0.2, memory_bytes: 0.2 * GB },
     ],
     host_name: "MacBook-Pro-Trufi",
+    memory_pressure: { level: "normal", percent: 34 },
   };
 }
 

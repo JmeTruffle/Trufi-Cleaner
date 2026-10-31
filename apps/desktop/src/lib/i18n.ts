@@ -42,6 +42,7 @@ export function factorText(f: HealthFactor): string {
   switch (f.id) {
     case "cpu_high": return `Процессор загружен в среднем на ${percent(f.value)}`;
     case "memory_high": return `Занято ${percent(f.value)} оперативной памяти`;
+    case "memory_pressure": return `Высокое давление памяти: ${percent(f.value)}`;
     case "system_disk_full": return `Системный диск заполнен на ${percent(f.value)}`;
     case "disk_full": return `Один из дисков заполнен на ${percent(f.value)}`;
     case "junk": return `Найдено ${bytes(f.value)} ненужных файлов`;
@@ -66,6 +67,8 @@ export function adviceText(a: Advice): { title: string; detail: string } {
       return { title: "Диск почти заполнен", detail: `Один из дисков занят на ${percent(a.value)}.` };
     case "memory_high":
       return { title: "Не хватает памяти", detail: a.subject ? `Больше всего памяти занимает ${a.subject}.` : "Закройте неиспользуемые программы." };
+    case "memory_pressure":
+      return { title: "Не хватает памяти", detail: `macOS сжимает память и использует диск вместо неё. ${a.subject ? `Больше всего памяти занимает ${a.subject}.` : "Закройте неиспользуемые программы."}` };
     case "cpu_high":
       return { title: "Процессор сильно загружен", detail: a.subject ? `Больше всего нагружает ${a.subject}.` : "Проверьте запущенные программы." };
     case "junk":

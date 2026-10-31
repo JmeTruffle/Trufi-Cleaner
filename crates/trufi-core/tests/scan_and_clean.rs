@@ -11,6 +11,8 @@ use trufi_core::scanner::{ScanOptions, Scanner};
 
 struct FakePlatform {
     home: PathBuf,
+    /// What `move_to_trash` received.
+    trashed: std::sync::Mutex<Vec<PathBuf>>,
 }
 
 impl Platform for FakePlatform {
@@ -45,6 +47,13 @@ impl Platform for FakePlatform {
         Ok(None)
     }
     fn empty_trash(&self) -> trufi_core::Result<()> {
+        Ok(())
+    }
+    fn move_to_trash(&self, paths: &[PathBuf]) -> trufi_core::Result<()> {
+        for p in paths {
+            std::fs::remove_file(p)?;
+        }
+        self.trashed.lock().unwrap().extend(paths.iter().cloned());
         Ok(())
     }
 }
@@ -116,7 +125,7 @@ fn scan_then_clean() {
 
     let mut rules = RuleSet::default();
     rules.add_pack_str("test", PACK, "linux").unwrap();
-    let platform = FakePlatform { home: home.clone() };
+    let platform = FakePlatform { home: home.clone(), trashed: Default::default() };
     let scanner = Scanner::new(&platform);
     let result = scanner.scan(&rules.rules, ScanOptions::default(), &|_| {});
     let summary = result.summary();
@@ -134,7 +143,7 @@ fn scan_then_clean() {
 
     let report = clean(
         &result,
-        &[CleanRequest { rule_id: "cache".into(), paths: None }],
+        &[CleanRequest { rule_id: "cache".into(), paths: None, to_trash: false }],
         &platform,
         scanner.guard(),
     );
@@ -160,13 +169,13 @@ fn clean_only_selected_paths() {
 
     let mut rules = RuleSet::default();
     rules.add_pack_str("test", PACK, "linux").unwrap();
-    let platform = FakePlatform { home: home.clone() };
+    let platform = FakePlatform { home: home.clone(), trashed: Default::default() };
     let scanner = Scanner::new(&platform);
     let result = scanner.scan(&rules.rules, ScanOptions::default(), &|_| {});
     let only = home.join("app/Default/Cache");
     let report = clean(
         &result,
-        &[CleanRequest { rule_id: "cache".into(), paths: Some(vec![only]) }],
+        &[CleanRequest { rule_id: "cache".into(), paths: Some(vec![only]), to_trash: false }],
         &platform,
         scanner.guard(),
     );
@@ -199,12 +208,47 @@ fn keep_newest_versions() {
     "#;
     let mut rules = RuleSet::default();
     rules.add_pack_str("v", pack, "linux").unwrap();
-    let platform = FakePlatform { home: home.clone() };
+    let platform = FakePlatform { home: home.clone(), trashed: Default::default() };
     let scanner = Scanner::new(&platform);
     let result = scanner.scan(&rules.rules, ScanOptions::default(), &|_| {});
     assert_eq!(result.summary().total_bytes, 200);
-    clean(&result, &[CleanRequest { rule_id: "old".into(), paths: None }], &platform, scanner.guard());
+    clean(&result, &[CleanRequest { rule_id: "old".into(), paths: None, to_trash: false }], &platform, scanner.guard());
     assert!(!home.join("Versions/v1").exists());
     assert!(!home.join("Versions/v2").exists());
     assert!(home.join("Versions/v3/app.bin").exists(), "newest version stays");
+}
+
+#[test]
+fn moves_to_trash_instead_of_deleting() {
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().to_path_buf();
+    write(&home.join("big/a.iso"), 300, 48);
+    write(&home.join("big/b.iso"), 200, 48);
+    let pack = r#"
+        [pack]
+        id = "t"
+        name = "t"
+        os = "linux"
+        [[rule]]
+        id = "big"
+        name = "Big"
+        category = "leftovers"
+        risk = "expert"
+        paths = ["~/big"]
+    "#;
+    let mut rules = RuleSet::default();
+    rules.add_pack_str("t", pack, "linux").unwrap();
+    let platform = FakePlatform { home: home.clone(), trashed: Default::default() };
+    let scanner = Scanner::new(&platform);
+    let result = scanner.scan(&rules.rules, ScanOptions::default(), &|_| {});
+    let only = home.join("big/a.iso");
+    let report = clean(
+        &result,
+        &[CleanRequest { rule_id: "big".into(), paths: Some(vec![only.clone()]), to_trash: true }],
+        &platform,
+        scanner.guard(),
+    );
+    assert_eq!(report.freed_bytes, 300);
+    assert_eq!(*platform.trashed.lock().unwrap(), vec![only]);
+    assert!(home.join("big/b.iso").exists());
 }

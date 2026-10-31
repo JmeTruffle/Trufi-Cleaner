@@ -233,7 +233,7 @@
                     <span class="badge badge-moderate" title="Закройте программу, чтобы очистить полностью">Запущено: {f.running_processes[0]}</span>
                   {/if}
                 </span>
-                <span class="size num">{bytes(f.bytes)}</span>
+                <span class="size num">{f.bytes === 0 && f.files ? `${count(f.files)} шт.` : bytes(f.bytes)}</span>
               </button>
             </div>
 
@@ -250,7 +250,7 @@
                         <span class="path" title={e.path}>{shortPath(e.path)}</span>
                         {#if e.note === "possible_saves"}<span class="badge badge-expert">Возможно, сохранения игр</span>{/if}
                         <span class="num muted">{bytes(e.bytes)}</span>
-                        <button class="icon-btn" title="Показать в проводнике" onclick={() => api.revealPath(e.path)}>
+                        <button class="icon-btn" title={isMac ? "Показать в Finder" : "Показать в Проводнике"} onclick={() => api.revealPath(e.path)}>
                           <Icon name="folder" size={15} />
                         </button>
                       </li>
@@ -272,7 +272,7 @@
         <div class="faint">Выбрано</div>
         <div class="sel num">{bytes(selectedBytes)}</div>
       </div>
-      <button class="btn btn-primary" disabled={selectedBytes === 0} onclick={startClean}>
+      <button class="btn btn-primary" disabled={selectedFindings.length === 0} onclick={startClean}>
         <Icon name="trash" size={16} /> Очистить
       </button>
     </div>
@@ -282,7 +282,14 @@
 {#if confirming}
   <Modal title="Проверьте перед очисткой" onclose={() => (confirming = false)}>
     {#if needsReview}
-      <p>Среди отмеченного есть пункты, которые нужно проверить вручную: остатки программ, крупные файлы или установщики. Они будут удалены безвозвратно, мимо Корзины.</p>
+      <p>Среди отмеченного есть пункты, которые нужно проверить вручную: остатки программ, крупные файлы или установщики.</p>
+      <label class="trash-opt">
+        <input type="checkbox" class="check" checked={app.trashReviewed} onchange={(e) => app.setTrashReviewed(e.currentTarget.checked)} />
+        <span>
+          Переместить их в Корзину, чтобы можно было вернуть
+          <span class="faint">{app.trashReviewed ? "Место освободится, когда вы очистите Корзину." : "Они будут удалены безвозвратно, мимо Корзины."}</span>
+        </span>
+      </label>
     {/if}
     {#if needsAdmin}
       <p>Часть файлов можно удалить только с правами администратора. Без них эти файлы пропустим. Перезапустить Trufi Cleaner от имени администратора можно в настройках.</p>
@@ -295,6 +302,8 @@
 {/if}
 
 <style>
+  .trash-opt { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 8px; cursor: pointer; }
+  .trash-opt > span { display: flex; flex-direction: column; gap: 2px; }
   .fda { display: flex; gap: 10px; align-items: center; padding: 12px 18px; color: var(--text-2); }
   .fda span { flex: 1; }
   .error { display: flex; gap: 8px; align-items: center; color: var(--bad); background: var(--bad-soft); border-color: transparent; padding: 12px 18px; }

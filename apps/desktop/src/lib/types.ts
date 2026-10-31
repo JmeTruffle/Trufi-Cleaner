@@ -51,7 +51,7 @@ export interface CleanReport {
   duration_ms: number;
 }
 
-export interface CleanRequest { rule_id: string; paths?: string[] | null }
+export interface CleanRequest { rule_id: string; paths?: string[] | null; to_trash?: boolean }
 
 export interface DiskInfo {
   name: string;
@@ -63,6 +63,8 @@ export interface DiskInfo {
   removable: boolean;
   is_system: boolean;
 }
+
+export interface MemoryPressure { level: "normal" | "warning" | "critical"; percent: number }
 
 export interface ProcessGroup { name: string; instances: number; cpu_percent: number; memory_bytes: number }
 
@@ -85,6 +87,8 @@ export interface SystemSnapshot {
   top_by_cpu: ProcessGroup[];
   top_by_memory: ProcessGroup[];
   host_name: string;
+  /** macOS only. */
+  memory_pressure?: MemoryPressure | null;
 }
 
 export interface HealthFactor { id: string; penalty: number; value: number }

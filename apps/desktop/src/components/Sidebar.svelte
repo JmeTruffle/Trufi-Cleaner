@@ -48,6 +48,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
   button {
     display: flex;

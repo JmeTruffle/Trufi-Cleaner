@@ -26,6 +26,15 @@ pub fn current() -> Box<dyn Platform> {
     return Box::new(linux::LinuxPlatform::new());
 }
 
+/// Moves files and folders to the OS trash (Recycle Bin, macOS Trash via
+/// Finder so "Put Back" works, freedesktop trash) in one call.
+pub(crate) fn move_to_trash(paths: &[std::path::PathBuf]) -> trufi_core::Result<()> {
+    if paths.is_empty() {
+        return Ok(());
+    }
+    trash::delete_all(paths).map_err(|e| trufi_core::Error::Platform(e.to_string()))
+}
+
 /// Splits a command line into the program path and its arguments:
 /// `"C:\a b\x.exe" -q` and `C:\a b\x.exe -q` both give `C:\a b\x.exe`.
 #[cfg_attr(not(windows), allow(dead_code))]

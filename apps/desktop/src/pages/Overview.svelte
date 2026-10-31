@@ -11,7 +11,9 @@
 
   let s = $derived(app.snapshot);
   let h = $derived(app.health);
-  let memPct = $derived(s ? (s.memory_used / Math.max(1, s.memory_total)) * 100 : 0);
+  let memPct = $derived(
+    s ? (s.memory_pressure ? s.memory_pressure.percent : (s.memory_used / Math.max(1, s.memory_total)) * 100) : 0,
+  );
   let procTab = $state<"cpu" | "memory">("cpu");
   let procs = $derived(s ? (procTab === "cpu" ? s.top_by_cpu : s.top_by_memory) : []);
   let u = $derived(app.updates);
@@ -65,6 +67,8 @@
   }
   const mascotMood = (score: number) => (score >= 80 ? "happy" : score >= 55 ? "calm" : score >= 35 ? "worried" : "sad");
 
+  const pressureName = { normal: "Нормальное", warning: "Повышенное", critical: "Высокое" };
+
   const dmy = (iso: string) => iso.split("-").reverse().join(".");
 
   const diskColor = (used: number) => (used >= 90 ? "var(--bad)" : used >= 80 ? "var(--warn)" : "var(--accent)");
@@ -105,11 +109,15 @@
     </section>
 
     <section class="card metric">
-      <div class="card-title">Память <span class="faint">{s ? bytes(s.memory_total, 0) : ""}</span></div>
+      <div class="card-title">{s?.memory_pressure ? "Давление памяти" : "Память"} <span class="faint">{s ? bytes(s.memory_total, 0) : ""}</span></div>
       <div class="big num display">{percent(memPct)}</div>
       <AreaChart values={app.memHistory} color="var(--mem)" />
       <div class="sub faint">
-        {#if s}Занято {bytes(s.memory_used)}{#if s.swap_total} · подкачка {bytes(s.swap_used)}{/if}{/if}
+        {#if s?.memory_pressure}
+          <!-- macOS: memory is always "full" of caches; pressure is what matters. -->
+          <span class="pressure {s.memory_pressure.level}">{pressureName[s.memory_pressure.level]}</span>
+          · занято {bytes(s.memory_used)}{#if s.swap_used} · своп {bytes(s.swap_used)}{/if}
+        {:else if s}Занято {bytes(s.memory_used)}{#if s.swap_total} · подкачка {bytes(s.swap_used)}{/if}{/if}
       </div>
     </section>
 
@@ -280,6 +288,10 @@
   .mid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
   .bottom { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
 
+  .pressure { font-weight: 650; }
+  .pressure.normal { color: var(--good); }
+  .pressure.warning { color: var(--warn); }
+  .pressure.critical { color: var(--bad); }
   .sys-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--divider); }
   .card-title + .sys-row { border-top: 0; padding-top: 2px; }
   .sys-icon { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
@@ -308,6 +320,7 @@
     background: rgba(255, 255, 255, 0.22);
     border: 1px solid rgba(255, 255, 255, 0.32);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     font-weight: 650;
     font-size: 13.5px;
     line-height: 1.35;

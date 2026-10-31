@@ -3,7 +3,7 @@
 //! translations.
 
 use crate::drivers::DriverHealth;
-use crate::monitor::SystemSnapshot;
+use crate::monitor::{PressureLevel, SystemSnapshot};
 use crate::updates::UpdateHealth;
 use serde::{Deserialize, Serialize};
 
@@ -53,7 +53,16 @@ pub fn evaluate(s: &SystemSnapshot, input: &HealthInput) -> Health {
     let cpu = input.cpu_avg_percent as f64;
     push("cpu_high", tier(cpu, &[(90.0, 15), (75.0, 8)]), cpu);
 
-    if s.memory_total > 0 {
+    // macOS keeps memory full of caches on purpose; there the OS's own
+    // pressure level says whether memory is short.
+    if let Some(p) = s.memory_pressure {
+        let penalty = match p.level {
+            PressureLevel::Normal => 0,
+            PressureLevel::Warning => 12,
+            PressureLevel::Critical => 20,
+        };
+        push("memory_pressure", penalty, p.percent as f64);
+    } else if s.memory_total > 0 {
         let mem = s.memory_used as f64 / s.memory_total as f64 * 100.0;
         push("memory_high", tier(mem, &[(92.0, 20), (85.0, 12), (75.0, 4)]), mem);
     }
@@ -147,6 +156,7 @@ pub(crate) mod tests {
             top_by_cpu: vec![],
             top_by_memory: vec![],
             host_name: "pc".into(),
+            memory_pressure: None,
         }
     }
 
@@ -182,6 +192,19 @@ pub(crate) mod tests {
         assert_eq!(h.score, 100 - 12 - 5 - 12 - 4);
         let ids: Vec<&str> = h.factors.iter().map(|f| f.id.as_str()).collect();
         assert_eq!(ids, ["updates_pending", "driver_problems", "updates_restart", "driver_updates"]);
+    }
+
+    #[test]
+    fn mac_memory_is_judged_by_pressure() {
+        use crate::monitor::MemoryPressure;
+        // 95% "used" but normal pressure: nothing to report on a Mac.
+        let mut s = snapshot(95, 50, 1);
+        s.memory_pressure = Some(MemoryPressure { level: PressureLevel::Normal, percent: 40.0 });
+        assert_eq!(evaluate(&s, &HealthInput::default()).score, 100);
+        s.memory_pressure = Some(MemoryPressure { level: PressureLevel::Critical, percent: 90.0 });
+        let h = evaluate(&s, &HealthInput::default());
+        assert_eq!(h.factors[0].id, "memory_pressure");
+        assert_eq!(h.score, 80);
     }
 
     #[test]

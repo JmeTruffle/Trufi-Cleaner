@@ -101,3 +101,11 @@ description = "Отчёты о сбоях программ. Нужны толь�
 category = "logs"
 risk = "safe"
 paths = ["~/Library/Logs/DiagnosticReports"]
+
+[[rule]]
+id = "mac.tm_snapshots"
+name = "Локальные снимки Time Machine"
+description = "Снимки, которые Time Machine держит на этом Mac между резервными копиями. Занимают место в «Системных данных»; macOS не сообщает их размер. Копии на внешнем диске не пострадают. macOS спросит пароль администратора."
+category = "system"
+risk = "moderate"
+special = "tm_snapshots"

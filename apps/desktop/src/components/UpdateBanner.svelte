@@ -34,6 +34,7 @@
     border: 1px solid var(--border);
     border-radius: 999px;
     backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
     flex: none;
   }
   .dot { color: var(--accent); display: grid; }

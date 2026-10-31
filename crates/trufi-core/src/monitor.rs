@@ -26,6 +26,23 @@ pub struct DiskInfo {
     pub is_system: bool,
 }
 
+/// How hard the OS is working to find memory (macOS). `level` is what
+/// Activity Monitor colours the graph by; `percent` is 100 minus the share
+/// of memory macOS considers free (`kern.memorystatus_level`).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct MemoryPressure {
+    pub level: PressureLevel,
+    pub percent: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PressureLevel {
+    Normal,
+    Warning,
+    Critical,
+}
+
 /// Processes grouped by executable name (a browser is one line, not forty).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessGroup {
@@ -56,6 +73,9 @@ pub struct SystemSnapshot {
     pub top_by_cpu: Vec<ProcessGroup>,
     pub top_by_memory: Vec<ProcessGroup>,
     pub host_name: String,
+    /// Filled by the app from the platform (macOS only).
+    #[serde(default)]
+    pub memory_pressure: Option<MemoryPressure>,
 }
 
 pub struct Monitor {
@@ -177,6 +197,7 @@ impl Monitor {
             top_by_cpu,
             top_by_memory,
             host_name: System::host_name().unwrap_or_default(),
+            memory_pressure: None,
         }
     }
 }

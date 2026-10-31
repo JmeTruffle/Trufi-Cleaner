@@ -62,6 +62,8 @@ class AppStore {
   cleaning = $state(false);
   lastClean = $state<CleanReport | null>(null);
   scanOptions = $state(load("scanOptions", { leftovers: true, largeFiles: true }));
+  /** Leftovers, large files and installers go to the OS trash, so they can be put back. */
+  trashReviewed = $state(load("trashReviewed", true));
 
   update = $state<AvailableUpdate | null>(null);
   updateState = $state<"idle" | "checking" | "none" | "downloading" | "error">("idle");
@@ -100,7 +102,9 @@ class AppStore {
       this.snapshot = s;
       const push = (arr: number[], v: number) => [...arr, v].slice(-HISTORY);
       this.cpuHistory = push(this.cpuHistory, s.cpu_percent);
-      this.memHistory = push(this.memHistory, (s.memory_used / Math.max(1, s.memory_total)) * 100);
+      // macOS: chart memory pressure, the figure Activity Monitor graphs.
+      const mem = s.memory_pressure ? s.memory_pressure.percent : (s.memory_used / Math.max(1, s.memory_total)) * 100;
+      this.memHistory = push(this.memHistory, mem);
       this.netHistory = push(this.netHistory, s.net_rx_bps + s.net_tx_bps);
       if (++this.healthTick % 10 === 0) this.refreshHealth();
     } catch {
@@ -168,6 +172,11 @@ class AppStore {
     this.health = await api.health().catch(() => this.health);
   }
 
+  setTrashReviewed(v: boolean) {
+    this.trashReviewed = v;
+    save("trashReviewed", v);
+  }
+
   setScanOptions(o: { leftovers: boolean; largeFiles: boolean }) {
     this.scanOptions = o;
     save("scanOptions", o);
@@ -214,7 +223,7 @@ class AppStore {
     const requests = this.scan.findings.flatMap((f): CleanRequest[] => {
       if (this.isItemized(f)) {
         const paths = this.selectedEntries[f.rule_id] ?? [];
-        return paths.length ? [{ rule_id: f.rule_id, paths }] : [];
+        return paths.length ? [{ rule_id: f.rule_id, paths, to_trash: this.trashReviewed }] : [];
       }
       return this.selected[f.rule_id] ? [{ rule_id: f.rule_id, paths: null }] : [];
     });
