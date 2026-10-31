@@ -313,7 +313,7 @@ input { font: inherit; color: inherit; }
 }
 
 /* macOS 26+: the sidebar sits on the system's own Liquid Glass
-   (NSGlassEffectView under the transparent web view, see glass.rs). The
+   (NSGlassEffectView under the web view, over a native copy of the sky, see glass.rs). The
    sky is painted with a hole where the glass is (--glass-hole, set by
    Sidebar.svelte), and the sidebar itself draws no fill of its own. */
 html.native-glass,
