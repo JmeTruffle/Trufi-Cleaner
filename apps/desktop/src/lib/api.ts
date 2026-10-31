@@ -24,6 +24,7 @@ type Commands = {
   uninstall_app: [{ id: string }, UninstallOutcome];
   relaunch_elevated: [undefined, void];
   reveal_path: [{ path: string }, void];
+  set_glass_frame: [{ x: number; y: number; width: number; height: number; radius: number }, boolean];
 };
 
 async function call<K extends keyof Commands>(cmd: K, args?: Commands[K][0]): Promise<Commands[K][1]> {
@@ -50,6 +51,8 @@ export const api = {
   uninstallApp: (id: string) => call("uninstall_app", { id }),
   relaunchElevated: () => call("relaunch_elevated"),
   revealPath: (path: string) => call("reveal_path", { path }),
+  /** macOS 26+: native Liquid Glass at this spot; false when the system has none. */
+  setGlassFrame: (r: { x: number; y: number; width: number; height: number; radius: number }) => call("set_glass_frame", r),
 };
 
 export async function onScanEvent(cb: (e: ScanEvent) => void): Promise<() => void> {

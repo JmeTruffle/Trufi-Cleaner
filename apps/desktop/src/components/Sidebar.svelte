@@ -1,7 +1,54 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { api, inTauri } from "../lib/api";
+  import { isMac, isWindows } from "../lib/os";
   import { app, type Page } from "../lib/store.svelte";
-  import { isWindows } from "../lib/os";
   import Icon from "./Icon.svelte";
+
+  let nav: HTMLElement;
+
+  /** A full-window mask with a rounded hole where the sidebar is. */
+  function holeMask(r: DOMRect, radius: number) {
+    const W = window.innerWidth, H = window.innerHeight;
+    const { x, y, width: w, height: h } = r;
+    const k = Math.min(radius, w / 2, h / 2);
+    const hole =
+      `M${x + k} ${y}H${x + w - k}A${k} ${k} 0 0 1 ${x + w} ${y + k}V${y + h - k}` +
+      `A${k} ${k} 0 0 1 ${x + w - k} ${y + h}H${x + k}A${k} ${k} 0 0 1 ${x} ${y + h - k}V${y + k}A${k} ${k} 0 0 1 ${x + k} ${y}Z`;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}' viewBox='0 0 ${W} ${H}'>` +
+      `<path fill='black' fill-rule='evenodd' d='M0 0H${W}V${H}H0Z${hole}'/></svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  }
+
+  // macOS 26+: ask for the system's Liquid Glass under the sidebar and keep
+  // it in place. Older macOS answers false and the CSS glass stays.
+  onMount(() => {
+    if (!isMac || !inTauri) return;
+    const radius = parseFloat(getComputedStyle(nav).borderTopLeftRadius) || 26;
+    let native = true;
+    const place = async () => {
+      if (!native) return;
+      const r = nav.getBoundingClientRect();
+      native = await api
+        .setGlassFrame({ x: r.x, y: r.y, width: r.width, height: r.height, radius })
+        .catch(() => false);
+      const root = document.documentElement;
+      if (native) {
+        root.style.setProperty("--glass-hole", holeMask(r, radius));
+        root.classList.add("native-glass");
+      } else {
+        root.classList.remove("native-glass");
+      }
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(nav);
+    window.addEventListener("resize", place);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", place);
+    };
+  });
 
   // Drivers are a Windows page: macOS updates drivers with the system.
   const items: { id: Page; label: string }[] = [
@@ -13,7 +60,7 @@
   ];
 </script>
 
-<nav class="sidebar">
+<nav class="sidebar" bind:this={nav}>
   {#each items as item}
     <button class:active={app.page === item.id} onclick={() => (app.page = item.id)}>
       <Icon name={item.id} size={19} />

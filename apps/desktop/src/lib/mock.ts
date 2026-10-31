@@ -412,4 +412,7 @@ export const mock = {
   },
   async relaunch_elevated() {},
   async reveal_path() {},
+  async set_glass_frame() {
+    return false;
+  },
 };

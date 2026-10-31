@@ -5,6 +5,10 @@
   --sky-top: #3a86ec;
   --sky-mid: #4a72d4;
   --sky-bottom: #33478f;
+  --sky:
+    radial-gradient(60% 45% at 85% 0%, rgba(110, 240, 210, 0.28), transparent 70%),
+    radial-gradient(50% 40% at 0% 10%, rgba(140, 200, 255, 0.35), transparent 70%),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 45%, var(--sky-bottom) 100%);
   --surface: rgba(255, 255, 255, 0.13);
   --surface-2: rgba(255, 255, 255, 0.1);
   --surface-hover: rgba(255, 255, 255, 0.2);
@@ -307,3 +311,29 @@ input { font: inherit; color: inherit; }
   border-color: rgba(255, 255, 255, 0.22);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), var(--shadow);
 }
+
+/* macOS 26+: the sidebar sits on the system's own Liquid Glass
+   (NSGlassEffectView under the transparent web view, see glass.rs). The
+   sky is painted with a hole where the glass is (--glass-hole, set by
+   Sidebar.svelte), and the sidebar itself draws no fill of its own. */
+html.native-glass,
+html.native-glass body { background: transparent; }
+html.native-glass .shell { background: none; position: relative; isolation: isolate; }
+html.native-glass .shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--sky);
+  -webkit-mask: var(--glass-hole) 0 0 / 100% 100% no-repeat;
+  mask: var(--glass-hole) 0 0 / 100% 100% no-repeat;
+}
+html.native-glass nav.sidebar {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.native-glass nav.sidebar::before { display: none; }
