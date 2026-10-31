@@ -5,6 +5,7 @@
   import { bytes, count, duration, percent, plural, rate } from "../lib/format";
   import { adviceActionLabel, adviceText, factorText, healthLevel } from "../lib/i18n";
   import { api } from "../lib/api";
+  import { isMac, isWindows, osName } from "../lib/os";
   import { app } from "../lib/store.svelte";
   import type { Advice } from "../lib/types";
 
@@ -38,7 +39,7 @@
         app.page = "optimize";
         break;
       case "updates":
-        api.openSystemPage("windows_update").catch(() => {});
+        api.openSystemPage("system_update").catch(() => {});
         break;
       case "drivers":
         app.page = "drivers";
@@ -130,8 +131,14 @@
             <div class="disk-head">
               <span class="disk-name">
                 <Icon name="disk" size={16} />
-                <b>{d.mount.replace(/\\$/, "")}</b>
-                {#if d.name && d.name !== d.mount}<span class="faint" title={d.name}>{d.name}</span>{/if}
+                {#if isMac}
+                  <!-- macOS: volumes are known by name ("Macintosh HD"), not mount point. -->
+                  <b>{d.name || d.mount}</b>
+                  {#if d.mount !== "/"}<span class="faint" title={d.mount}>{d.mount}</span>{/if}
+                {:else}
+                  <b>{d.mount.replace(/\\$/, "")}</b>
+                  {#if d.name && d.name !== d.mount}<span class="faint" title={d.name}>{d.name}</span>{/if}
+                {/if}
                 {#if d.is_system}<span class="badge badge-muted">Системный</span>{/if}
                 {#if d.kind !== "unknown"}<span class="badge badge-muted">{d.kind.toUpperCase()}</span>{/if}
               </span>
@@ -192,10 +199,10 @@
     <section class="card">
       <div class="card-title">Система</div>
       <div class="sys-row">
-        <span class="sys-icon"><Icon name="windows" size={18} /></span>
+        <span class="sys-icon"><Icon name={isMac ? "laptop" : "windows"} size={18} /></span>
         <div class="sys-main">
           <div class="sys-title">
-            {#if u?.version}{u.version.name} {u.version.display_version ?? ""}{:else}Windows{/if}
+            {#if u?.version}{u.version.name} {u.version.display_version ?? ""}{:else}{osName}{/if}
           </div>
           {#if app.updatesState === "loading" && !u}
             <div class="muted">Проверяем обновления…</div>
@@ -209,17 +216,40 @@
             {:else if u.reboot_required}
               <div class="st warn">Обновления ждут перезагрузки</div>
             {:else if u.error}
-              <div class="muted">Центр обновления недоступен: {u.error}</div>
+              <div class="muted">{isMac ? "Обновление ПО" : "Центр обновления"} недоступен: {u.error}</div>
             {:else}
               <div class="st good">Обновления установлены</div>
             {/if}
             <div class="faint small">
-              {[u.version && `Сборка ${u.version.build}.${u.version.revision}`, u.last_install && `обновлялась ${dmy(u.last_install)}`].filter(Boolean).join(" · ")}
+              {[
+                u.version && (u.version.build_label ? `Сборка ${u.version.build_label}` : u.version.build ? `Сборка ${u.version.build}.${u.version.revision}` : ""),
+                u.last_install && `обновлялась ${dmy(u.last_install)}`,
+              ].filter(Boolean).join(" · ")}
             </div>
           {/if}
         </div>
-        <button class="btn btn-ghost btn-small" onclick={() => api.openSystemPage("windows_update").catch(() => {})}>Центр обновления</button>
+        <button class="btn btn-ghost btn-small" onclick={() => api.openSystemPage("system_update").catch(() => {})}>
+          {isMac ? "Обновление ПО" : "Центр обновления"}
+        </button>
       </div>
+      {#if isMac}
+        <div class="sys-row">
+          <span class="sys-icon"><Icon name="lock" size={18} /></span>
+          <div class="sys-main">
+            <div class="sys-title">Полный доступ к диску</div>
+            {#if app.info?.full_disk_access}
+              <div class="st good">Разрешён</div>
+            {:else}
+              <div class="st warn">Не разрешён</div>
+              <div class="faint small">Без него не видны Корзина, кеш Safari, вложения Почты и остатки программ из App Store</div>
+            {/if}
+          </div>
+          {#if app.info && !app.info.full_disk_access}
+            <button class="btn btn-ghost btn-small" onclick={() => api.openSystemPage("full_disk_access").catch(() => {})}>Разрешить</button>
+          {/if}
+        </div>
+      {/if}
+      {#if isWindows}
       <div class="sys-row">
         <span class="sys-icon"><Icon name="drivers" size={18} /></span>
         <div class="sys-main">
@@ -239,6 +269,7 @@
         </div>
         <button class="btn btn-ghost btn-small" onclick={() => (app.page = "drivers")}>Открыть</button>
       </div>
+      {/if}
     </section>
   </div>
 </div>

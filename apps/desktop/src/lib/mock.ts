@@ -1,10 +1,12 @@
 // Browser-only stand-in for the Rust backend. Numbers resemble a real
-// Windows 11 machine so the UI can be judged realistically.
+// Windows 11 machine (or a Mac with `?os=macos`) so the UI can be judged
+// realistically.
 
 import type {
   CleanReport, CleanRequest, DriverInfo, HealthReport, InstalledApp, PendingUpdate, RuleFinding, ScanArgs, ScanEvent,
   ScanSummary, StartupItem, SystemInfo, SystemSnapshot, UpdateStatus,
 } from "./types";
+import { isMac } from "./os";
 
 const GB = 1024 ** 3;
 const MB = 1024 ** 2;
@@ -32,7 +34,24 @@ const demoHealth: Record<string, { id: string; penalty: number; value: number }[
   ],
 };
 let scanned: ScanSummary | null = null;
-const startup: StartupItem[] = [
+const macStartup: StartupItem[] = [
+  ["Google Updater", "com.google.GoogleUpdater.wake", "~/Library/Application Support/Google/GoogleUpdater/Current/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake", true, "gui", true],
+  ["Zoom", "us.zoom.updater", "/Library/Application Support/zoom.us/ZoomUpdater.app/Contents/MacOS/ZoomUpdater", true, "gui", true],
+  ["Docker", "com.docker.vmnetd", "/Library/PrivilegedHelperTools/com.docker.vmnetd", true, "system", true],
+  ["Adobe Acrobat Update", "com.adobe.ARMDC.SMJobBlessHelper", "/Library/PrivilegedHelperTools/com.adobe.ARMDC.SMJobBlessHelper", true, "system", true],
+  ["Logi Options+", "com.logi.optionsplus.updater", "/Applications/logioptionsplus.app/Contents/Frameworks/logioptionsplus_updater.app/Contents/MacOS/logioptionsplus_updater", false, "gui", false],
+].map(([name, label, command, enabled, domain, exists]) => ({
+  id: `${domain}|${label}`,
+  name: name as string,
+  command: command as string,
+  source: domain === "system" ? "launch_daemon" : "launch_agent",
+  scope: command.toString().startsWith("~") ? "current_user" : "all_users",
+  enabled: enabled as boolean,
+  requires_admin: domain === "system",
+  target_exists: exists as boolean,
+}));
+
+const windowsStartup: StartupItem[] = [
   ["Steam", "\"C:\\Program Files (x86)\\Steam\\steam.exe\" -silent", true, true],
   ["Discord", "C:\\Users\\user\\AppData\\Local\\Discord\\Update.exe --processStart Discord.exe", true, true],
   ["EpicGamesLauncher", "\"C:\\Program Files (x86)\\Epic Games\\Launcher\\EpicGamesLauncher.exe\" -silent", true, true],
@@ -54,6 +73,7 @@ const startup: StartupItem[] = [
   requires_admin: i >= 10,
   target_exists: exists as boolean,
 }));
+const startup = isMac ? macStartup : windowsStartup;
 
 function snapshot(): SystemSnapshot {
   cpu = Math.max(3, Math.min(97, cpu + (Math.random() - 0.5) * 14));
@@ -93,6 +113,35 @@ function snapshot(): SystemSnapshot {
       { name: "MsMpEng.exe", instances: 1, cpu_percent: 0.4, memory_bytes: 0.4 * GB },
     ],
     host_name: "DESKTOP-TRUFI",
+    ...(isMac ? macSnapshot() : {}),
+  };
+}
+
+function macSnapshot(): Partial<SystemSnapshot> {
+  return {
+    cpu_brand: "Apple M2 Pro",
+    cpu_cores: 12,
+    memory_total: 16 * GB,
+    memory_used: (11.4 + Math.random() * 0.4) * GB,
+    disks: [
+      { name: "Macintosh HD", mount: "/", file_system: "apfs", total_bytes: 494 * GB, available_bytes: 61 * GB, kind: "ssd", removable: false, is_system: true },
+      { name: "Time Machine", mount: "/Volumes/Time Machine", file_system: "apfs", total_bytes: 1863 * GB, available_bytes: 912 * GB, kind: "hdd", removable: false, is_system: false },
+    ],
+    top_by_cpu: [
+      { name: "Google Chrome Helper (Renderer)", instances: 24, cpu_percent: cpu * 0.3, memory_bytes: 2.9 * GB },
+      { name: "WindowServer", instances: 1, cpu_percent: cpu * 0.12, memory_bytes: 0.4 * GB },
+      { name: "Telegram", instances: 1, cpu_percent: cpu * 0.05, memory_bytes: 0.5 * GB },
+      { name: "kernel_task", instances: 1, cpu_percent: cpu * 0.04, memory_bytes: 0.1 * GB },
+      { name: "Code Helper (Renderer)", instances: 9, cpu_percent: cpu * 0.03, memory_bytes: 1.2 * GB },
+    ],
+    top_by_memory: [
+      { name: "Google Chrome Helper (Renderer)", instances: 24, cpu_percent: 6, memory_bytes: 2.9 * GB },
+      { name: "Code Helper (Renderer)", instances: 9, cpu_percent: 1, memory_bytes: 1.2 * GB },
+      { name: "Telegram", instances: 1, cpu_percent: 1, memory_bytes: 0.5 * GB },
+      { name: "WindowServer", instances: 1, cpu_percent: 3, memory_bytes: 0.4 * GB },
+      { name: "Finder", instances: 1, cpu_percent: 0.2, memory_bytes: 0.2 * GB },
+    ],
+    host_name: "MacBook-Pro-Trufi",
   };
 }
 
@@ -161,7 +210,18 @@ const findings: RuleFinding[] = [
   }),
 ];
 
-const apps: InstalledApp[] = [
+const macApps: InstalledApp[] = [
+  ["Xcode", "com.apple.dt.Xcode", "16.1", 11.8 * GB], ["Google Chrome", "com.google.Chrome", "130.0", 1.3 * GB],
+  ["Telegram", "ru.keepcoder.Telegram", "11.3", 0.3 * GB], ["Docker", "com.docker.docker", "4.35.1", 2.1 * GB],
+  ["Visual Studio Code", "com.microsoft.VSCode", "1.95.2", 0.6 * GB], ["Slack", "com.tinyspeck.slackmacgap", "4.41.105", 0.5 * GB],
+  ["GarageBand", "com.apple.garageband10", "10.4.11", 1.9 * GB], ["Safari", "com.apple.Safari", "18.1", 0.1 * GB],
+].map(([name, bundle, version, size]) => ({
+  id: `/Applications/${name}.app`, name: name as string, publisher: null, version: version as string,
+  install_location: `/Applications/${name}.app`, size_bytes: size as number, broken: false,
+  can_uninstall: bundle !== "com.apple.Safari", bundle_id: bundle as string,
+}));
+
+const windowsApps: InstalledApp[] = [
   ["Steam", "Valve Corporation", 0.3 * GB, false], ["Discord", "Discord Inc.", 0.4 * GB, false],
   ["Epic Games Launcher", "Epic Games, Inc.", 0.2 * GB, false], ["Google Chrome", "Google LLC", 0.6 * GB, false],
   ["Java 8 Update 431", "Oracle Corporation", 212 * MB, false], ["Lightshot-5.5.0.7", "Skillbrains", 6 * MB, false],
@@ -172,6 +232,7 @@ const apps: InstalledApp[] = [
   id: `HKLM64\\app${i}`, name: name as string, publisher: publisher as string, version: "1.0",
   install_location: null, size_bytes: size as number | null, broken: broken as boolean, can_uninstall: !broken,
 }));
+const apps = isMac ? macApps : windowsApps;
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
 const update = (title: string, extra: Partial<PendingUpdate> = {}): PendingUpdate => ({
@@ -181,7 +242,21 @@ const update = (title: string, extra: Partial<PendingUpdate> = {}): PendingUpdat
 const GPU_HWID = "PCI\\VEN_10DE&DEV_2484&SUBSYS_146B10DE";
 let updatesChecked = false;
 let driversListed = false;
-const updates: UpdateStatus = {
+const macUpdates: UpdateStatus = {
+  version: { name: "macOS Sequoia", display_version: "15.1", build: 0, revision: 0, edition: "", build_label: "24B83" },
+  servicing_ends: null,
+  out_of_support: false,
+  pending: [
+    update("macOS Sequoia 15.1.1", { id: "macOS Sequoia 15.1.1-24B91", severity: "Important", size_bytes: 1.6 * GB }),
+    update("XProtectPlistConfigData", { definition: true, optional: true, size_bytes: 1 * MB }),
+  ],
+  reboot_required: false,
+  last_install: daysAgo(31),
+  days_since_install: 31,
+  error: null,
+  checked_at_ms: Date.now(),
+};
+const windowsUpdates: UpdateStatus = {
   version: { name: "Windows 11", display_version: "25H2", build: 26200, revision: 6899, edition: "Professional" },
   servicing_ends: "2027-10-12",
   out_of_support: false,
@@ -196,6 +271,7 @@ const updates: UpdateStatus = {
   error: null,
   checked_at_ms: Date.now(),
 };
+const updates = isMac ? macUpdates : windowsUpdates;
 const drv = (device: string, cls: string, provider: string, version: string, ageDays: number, extra: Partial<DriverInfo> = {}): DriverInfo => {
   const inbox = provider === "Microsoft";
   return {
@@ -225,9 +301,17 @@ const drivers: DriverInfo[] = [
 
 export const mock = {
   async system_info(): Promise<SystemInfo> {
+    if (isMac) {
+      return {
+        os: "macos", os_label: "macOS Sequoia 15.1", host_name: "MacBook-Pro-Trufi", app_version: "0.1.0",
+        is_elevated: false, full_disk_access: new URLSearchParams(location.search).get("fda") === "1",
+        rule_count: 46, rule_packs: ["macOS", "Браузеры", "Программы", "Разработка"],
+        rule_errors: [], user_rules_dir: "/Users/user/Library/Application Support/app.trufi.cleaner/rules",
+      };
+    }
     return {
       os: "windows", os_label: "Windows 11 Pro 26300", host_name: "DESKTOP-TRUFI", app_version: "0.1.0",
-      is_elevated: false, rule_count: 84, rule_packs: ["Windows", "Браузеры", "Программы", "Игры", "Разработка"],
+      is_elevated: false, full_disk_access: null, rule_count: 84, rule_packs: ["Windows", "Браузеры", "Программы", "Игры", "Разработка"],
       rule_errors: [], user_rules_dir: `${R}\\app.trufi.cleaner\\rules`,
     };
   },
@@ -238,6 +322,7 @@ export const mock = {
     return structuredClone(updates);
   },
   async drivers(): Promise<DriverInfo[]> {
+    if (isMac) throw { code: "unsupported", message: "" };
     if (!driversListed) await wait(900);
     driversListed = true;
     return drivers.map((d) => ({ ...d }));
@@ -311,11 +396,13 @@ export const mock = {
   async startup_items() { return startup.map((s) => ({ ...s })); },
   async set_startup_enabled(a: { id: string; enabled: boolean }) {
     const s = startup.find((x) => x.id === a.id);
-    if (s?.requires_admin) throw { code: "elevation_required", message: "" };
+    if (s?.requires_admin && !isMac) throw { code: "elevation_required", message: "" };
     if (s) s.enabled = a.enabled;
   },
   async installed_apps() { return apps; },
-  async uninstall_app() {},
+  async uninstall_app() {
+    return isMac ? ("moved_to_trash" as const) : ("uninstaller_started" as const);
+  },
   async relaunch_elevated() {},
   async reveal_path() {},
 };

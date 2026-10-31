@@ -113,6 +113,7 @@ pub fn installed_apps() -> Vec<InstalledApp> {
                     .map(|kb| kb as u64 * 1024),
                 broken,
                 can_uninstall: uninstall.is_some() && !uninstaller_missing,
+                bundle_id: None,
             });
         }
     }

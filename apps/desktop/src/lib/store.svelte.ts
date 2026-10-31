@@ -4,13 +4,14 @@
 import { api, onScanEvent } from "./api";
 import { checkForUpdate, type AvailableUpdate } from "./updater";
 import { errorText } from "./i18n";
+import { os } from "./os";
 import type {
   CleanReport, CleanRequest, DriverInfo, HealthReport, RuleFinding, ScanArgs, ScanSummary, SystemInfo,
   SystemSnapshot, UpdateStatus,
 } from "./types";
 
 export type Page = "overview" | "cleaner" | "optimize" | "drivers" | "settings";
-/** Progress of a slow system check (Windows Update, driver list). */
+/** Progress of a slow system check (OS updates, driver list). */
 export type CheckState = "idle" | "loading" | "done" | "error";
 
 const HISTORY = 60;
@@ -75,9 +76,16 @@ class AppStore {
     await this.poll();
     this.refreshHealth();
     this.timer ??= setInterval(() => this.poll(), POLL_MS);
-    // Both checks are slow (WMI, Windows Update); run them in the background
-    // and let the score pick them up when they finish.
-    this.loadDrivers().then(() => this.loadUpdates());
+    // Both checks are slow (WMI, Windows Update, softwareupdate); run them
+    // in the background and let the score pick them up when they finish.
+    // Drivers are a Windows notion; macOS manages them itself.
+    const system = this.info?.os ?? os;
+    if (system === "windows") this.loadDrivers().then(() => this.loadUpdates());
+    else if (system === "macos") {
+      this.loadUpdates();
+      // Full Disk Access is granted in System Settings; pick it up on return.
+      window.addEventListener("focus", () => this.refreshInfo());
+    }
     setTimeout(() => this.checkUpdate(), 3000);
     setInterval(() => this.checkUpdate(), UPDATE_CHECK_MS);
     onScanEvent((e) => {
@@ -149,6 +157,11 @@ class AppStore {
       this.driversState = "error";
     }
     this.refreshHealth();
+  }
+
+  /** Re-reads system info (macOS: after granting Full Disk Access). */
+  async refreshInfo() {
+    this.info = await api.systemInfo().catch(() => this.info);
   }
 
   async refreshHealth() {

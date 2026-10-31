@@ -1,17 +1,61 @@
+# macOS: developer tool caches. Rebuild or re-download is needed after
+# cleaning, so most are "moderate" and not pre-selected.
+
 [pack]
 id = "macos.developer"
 name = "Разработка"
 os = "macos"
-version = 1
+version = 2
 
 [[rule]]
 id = "mac.dev.xcode.derived_data"
 name = "Xcode: DerivedData"
-description = "Промежуточные файлы сборки. Проекты соберутся заново."
+description = "Промежуточные файлы сборки и индексы. Проекты соберутся заново."
 category = "developer"
 risk = "moderate"
 paths = ["~/Library/Developer/Xcode/DerivedData"]
 close_processes = ["Xcode"]
+
+[[rule]]
+id = "mac.dev.xcode.device_support"
+name = "Xcode: файлы поддержки устройств"
+description = "Символы старых версий iOS для отладки на устройстве. Самая новая версия остаётся, остальные Xcode скачает при подключении устройства."
+category = "developer"
+risk = "moderate"
+paths = [
+  "~/Library/Developer/Xcode/iOS DeviceSupport",
+  "~/Library/Developer/Xcode/watchOS DeviceSupport",
+  "~/Library/Developer/Xcode/tvOS DeviceSupport",
+  "~/Library/Developer/Xcode/visionOS DeviceSupport",
+]
+keep_newest = 1
+close_processes = ["Xcode"]
+
+[[rule]]
+id = "mac.dev.xcode.archives"
+name = "Xcode: архивы сборок"
+description = "Архивы выпущенных сборок с символами для разбора сбоев. Удаляйте только архивы версий, которые больше не поддерживаете."
+category = "developer"
+risk = "expert"
+paths = ["~/Library/Developer/Xcode/Archives"]
+keep_newest = 0
+
+[[rule]]
+id = "mac.dev.xcode.previews"
+name = "Xcode: кеш превью SwiftUI"
+category = "developer"
+risk = "moderate"
+paths = ["~/Library/Developer/Xcode/UserData/Previews"]
+close_processes = ["Xcode"]
+
+[[rule]]
+id = "mac.dev.simulator.caches"
+name = "Симуляторы: кеш"
+description = "Кеш среды симуляторов. Сами симуляторы и установленные в них приложения остаются."
+category = "developer"
+risk = "moderate"
+paths = ["~/Library/Developer/CoreSimulator/Caches"]
+close_processes = ["Simulator"]
 
 [[rule]]
 id = "mac.dev.npm.cache"
@@ -19,3 +63,92 @@ name = "npm: кеш пакетов"
 category = "developer"
 risk = "moderate"
 paths = ["~/.npm/_cacache"]
+
+[[rule]]
+id = "mac.dev.yarn.cache"
+name = "Yarn: кеш пакетов"
+description = "Глобальный кеш Yarn 1 и Yarn Berry. Пакеты скачаются снова при следующей установке."
+category = "developer"
+risk = "safe"
+paths = [
+  "~/Library/Caches/Yarn",
+  "~/.yarn/berry/cache",
+]
+
+[[rule]]
+id = "mac.dev.pnpm.store"
+name = "pnpm: хранилище пакетов"
+description = "После очистки pnpm скачает пакеты заново при следующей установке."
+category = "developer"
+risk = "expert"
+paths = ["~/Library/pnpm/store"]
+
+[[rule]]
+id = "mac.dev.bun.cache"
+name = "Bun: кеш пакетов"
+category = "developer"
+risk = "moderate"
+paths = ["~/.bun/install/cache"]
+
+[[rule]]
+id = "mac.dev.pip.cache"
+name = "pip: кеш пакетов"
+category = "developer"
+risk = "moderate"
+paths = ["~/Library/Caches/pip"]
+
+[[rule]]
+id = "mac.dev.uv.cache"
+name = "uv: кеш пакетов"
+category = "developer"
+risk = "moderate"
+paths = ["~/.cache/uv"]
+
+[[rule]]
+id = "mac.dev.homebrew.cache"
+name = "Homebrew: скачанные пакеты"
+description = "То же, что делает brew cleanup: архивы уже установленных пакетов."
+category = "developer"
+risk = "safe"
+paths = ["~/Library/Caches/Homebrew"]
+
+[[rule]]
+id = "mac.dev.cocoapods.cache"
+name = "CocoaPods: кеш"
+category = "developer"
+risk = "moderate"
+paths = ["~/Library/Caches/CocoaPods"]
+
+[[rule]]
+id = "mac.dev.gradle.cache"
+name = "Gradle: кеш"
+category = "developer"
+risk = "moderate"
+paths = ["~/.gradle/caches"]
+close_processes = ["java"]
+
+[[rule]]
+id = "mac.dev.cargo.cache"
+name = "Cargo: кеш загрузок"
+category = "developer"
+risk = "moderate"
+paths = ["~/.cargo/registry/cache"]
+
+[[rule]]
+id = "mac.dev.go.cache"
+name = "Go: кеш сборки"
+category = "developer"
+risk = "safe"
+paths = ["~/Library/Caches/go-build"]
+
+[[rule]]
+id = "mac.dev.jetbrains.caches"
+name = "JetBrains IDE: кеши и журналы"
+description = "Индексы и журналы. IDE переиндексирует проекты при следующем открытии."
+category = "developer"
+risk = "moderate"
+paths = [
+  "~/Library/Caches/JetBrains/*/caches",
+  "~/Library/Caches/JetBrains/*/tmp",
+  "~/Library/Logs/JetBrains",
+]

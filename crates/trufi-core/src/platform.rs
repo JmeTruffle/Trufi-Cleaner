@@ -4,7 +4,7 @@
 //! shipping a rule pack for it; nothing else in the core changes.
 
 use crate::drivers::DriverInfo;
-use crate::model::{InstalledApp, StartupItem};
+use crate::model::{InstalledApp, StartupItem, UninstallOutcome};
 use crate::updates::UpdateStatus;
 use crate::Result;
 use std::collections::HashMap;
@@ -29,14 +29,22 @@ impl OsFamily {
     }
 }
 
-/// System settings pages the UI can send the user to.
+/// System settings pages the UI can send the user to. Not every OS has
+/// every page: the platform answers `Unsupported` for the rest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SystemPage {
-    WindowsUpdate,
+    /// Windows Update / macOS Software Update.
+    #[serde(alias = "windows_update")]
+    SystemUpdate,
     /// Where Windows Update keeps optional driver updates.
     OptionalUpdates,
     DeviceManager,
+    /// Apps that start at login (Windows: Settings > Startup apps; macOS:
+    /// General > Login Items).
+    LoginItems,
+    /// macOS: Privacy & Security > Full Disk Access.
+    FullDiskAccess,
 }
 
 /// Where leftover detection should look and what it must never touch.
@@ -50,6 +58,9 @@ pub struct LeftoverRoots {
     /// Child folder names (normalised, see `util::normalize_name`) that
     /// belong to the OS itself or to drivers and are never leftovers.
     pub ignore_names: Vec<String>,
+    /// Child folder name prefixes that are never leftovers (`com.apple.`
+    /// on macOS). Compared case-insensitively, as written.
+    pub ignore_prefixes: Vec<String>,
 }
 
 pub trait Platform: Send + Sync {
@@ -80,6 +91,13 @@ pub trait Platform: Send + Sync {
 
     fn is_elevated(&self) -> bool;
 
+    /// macOS: whether the app has Full Disk Access. Without it the Trash,
+    /// Safari, Mail and some app containers cannot be read. `None` where
+    /// the OS has no such permission.
+    fn full_disk_access(&self) -> Option<bool> {
+        None
+    }
+
     /// Restart the current executable with elevated rights.
     fn relaunch_elevated(&self) -> Result<()> {
         Err(crate::Error::Unsupported("relaunch_elevated"))
@@ -89,8 +107,9 @@ pub trait Platform: Send + Sync {
 
     fn leftover_roots(&self) -> LeftoverRoots;
 
-    /// Starts the app's own uninstaller. The uninstaller asks the user.
-    fn uninstall_app(&self, _id: &str) -> Result<()> {
+    /// Starts the app's own uninstaller (Windows) or moves the app to the
+    /// Trash (macOS). The OS or the uninstaller asks the user.
+    fn uninstall_app(&self, _id: &str) -> Result<UninstallOutcome> {
         Err(crate::Error::Unsupported("uninstall_app"))
     }
 
@@ -103,8 +122,8 @@ pub trait Platform: Send + Sync {
 
     fn empty_trash(&self) -> Result<()>;
 
-    /// Installed version and what Windows Update has waiting. Slow: it
-    /// asks the update service, which may go online.
+    /// Installed version and what the OS update service has waiting. Slow:
+    /// it asks the update service, which goes online.
     fn update_status(&self) -> Result<UpdateStatus> {
         Err(crate::Error::Unsupported("update_status"))
     }

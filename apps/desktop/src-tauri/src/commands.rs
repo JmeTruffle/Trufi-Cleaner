@@ -8,7 +8,7 @@ use trufi_core::advisor::{advise, Advice};
 use trufi_core::cleaner::{clean as run_clean, CleanRequest};
 use trufi_core::drivers::{self, DriverInfo};
 use trufi_core::health::{evaluate, Health, HealthInput};
-use trufi_core::model::{CleanReport, InstalledApp, ScanSummary, StartupItem};
+use trufi_core::model::{CleanReport, InstalledApp, ScanSummary, StartupItem, UninstallOutcome};
 use trufi_core::monitor::SystemSnapshot;
 use trufi_core::platform::SystemPage;
 use trufi_core::rules::Rule;
@@ -77,6 +77,8 @@ pub struct SystemInfo {
     pub host_name: String,
     pub app_version: String,
     pub is_elevated: bool,
+    /// macOS Full Disk Access; null on other systems.
+    pub full_disk_access: Option<bool>,
     pub rule_count: usize,
     pub rule_packs: Vec<String>,
     pub rule_errors: Vec<String>,
@@ -93,6 +95,7 @@ pub fn system_info(app: AppHandle, state: State<'_, AppState>) -> SystemInfo {
         // The release build stamps the version into tauri.conf.json.
         app_version: app.package_info().version.to_string(),
         is_elevated: state.platform.is_elevated(),
+        full_disk_access: state.platform.full_disk_access(),
         rule_count: rules.rules.len(),
         rule_packs: rules.packs.iter().map(|p| p.name.clone()).collect(),
         rule_errors: state.rule_errors.clone(),
@@ -159,8 +162,8 @@ pub async fn health(app: AppHandle) -> CmdResult<HealthReport> {
     .await
 }
 
-/// Windows Update state. Cached after the first check; `refresh` asks
-/// the update service again.
+/// OS update state (Windows Update, macOS Software Update). Cached after
+/// the first check; `refresh` asks the update service again.
 #[tauri::command]
 pub async fn update_status(app: AppHandle, refresh: bool) -> CmdResult<UpdateStatus> {
     blocking(&app, move |state| {
@@ -293,7 +296,7 @@ pub async fn installed_apps(app: AppHandle) -> CmdResult<Vec<InstalledApp>> {
 }
 
 #[tauri::command]
-pub async fn uninstall_app(app: AppHandle, id: String) -> CmdResult<()> {
+pub async fn uninstall_app(app: AppHandle, id: String) -> CmdResult<UninstallOutcome> {
     blocking(&app, move |state| Ok(state.platform.uninstall_app(&id)?)).await
 }
 

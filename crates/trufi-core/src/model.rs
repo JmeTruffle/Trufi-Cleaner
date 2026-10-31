@@ -101,7 +101,8 @@ pub struct RuleCleanResult {
 /// An installed application as reported by the OS.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct InstalledApp {
-    /// Platform-specific identifier (registry key path on Windows).
+    /// Platform-specific identifier (registry key path on Windows, bundle
+    /// path on macOS).
     pub id: String,
     pub name: String,
     pub publisher: Option<String>,
@@ -111,6 +112,10 @@ pub struct InstalledApp {
     /// The OS still lists the app but its files are gone.
     pub broken: bool,
     pub can_uninstall: bool,
+    /// macOS bundle identifier (`com.tinyspeck.slackmacgap`). Data folders
+    /// in `~/Library` are often named after it.
+    #[serde(default)]
+    pub bundle_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,4 +138,14 @@ pub struct StartupItem {
     pub requires_admin: bool,
     /// False when the program the entry starts no longer exists.
     pub target_exists: bool,
+}
+
+/// What removing an app did, so the UI can say the right thing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UninstallOutcome {
+    /// The app's own uninstaller is running and asks the user.
+    UninstallerStarted,
+    /// The app was moved to the Trash (macOS).
+    MovedToTrash,
 }

@@ -1,12 +1,14 @@
 <script lang="ts">
   import { app, type Page } from "../lib/store.svelte";
+  import { isWindows } from "../lib/os";
   import Icon from "./Icon.svelte";
 
+  // Drivers are a Windows page: macOS updates drivers with the system.
   const items: { id: Page; label: string }[] = [
     { id: "overview", label: "Обзор" },
     { id: "cleaner", label: "Очистка" },
     { id: "optimize", label: "Оптимизация" },
-    { id: "drivers", label: "Драйверы" },
+    ...(isWindows ? [{ id: "drivers" as Page, label: "Драйверы" }] : []),
     { id: "settings", label: "Настройки" },
   ];
 </script>

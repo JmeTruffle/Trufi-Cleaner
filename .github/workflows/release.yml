@@ -1,10 +1,15 @@
 name: Release
 
-# Every push to main builds a signed installer, publishes it as a GitHub
-# release with a new version, and updates latest.json, which installed
+# Every push to main builds signed installers for Windows (.exe) and macOS
+# (.dmg, universal: Apple Silicon and Intel), publishes them as one GitHub
+# release with a new version, and writes latest.json, which installed
 # copies of the app check to offer "Обновить".
 #
+# The release stays a draft until both builds are uploaded, so the update
+# check never sees a half-published version.
+#
 # Setup (once): add secrets.TAURI_SIGNING_PRIVATE_KEY (see docs/RELEASES.md).
+# Optional: Apple Developer ID secrets for a signed and notarized Mac app.
 # The repository must be public so the app can download updates.
 
 on:
@@ -20,8 +25,11 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-latest
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.stamp.outputs.version }}
+      release_id: ${{ steps.draft.outputs.id }}
     steps:
       - name: Check signing key
         shell: bash
@@ -36,9 +44,71 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Stamp version
+        id: stamp
+        run: node scripts/stamp-release.mjs ${{ github.run_number }} ${{ github.repository }}
+
+      - name: Release notes
+        shell: bash
+        env:
+          VERSION: ${{ steps.stamp.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "## Что нового"
+            echo
+            git log -1 --pretty=format:'%s%n%n%b' | sed '/^Co-Authored-By:/d;/^Claude-Session:/d'
+            echo
+            echo
+            echo "## Установка"
+            echo
+            echo "- **Windows 10/11**: скачайте **Trufi.Cleaner_${VERSION}_x64-setup.exe** и запустите. Права администратора не нужны."
+            echo "- **macOS 11+** (Apple Silicon и Intel): скачайте **Trufi.Cleaner_${VERSION}_universal.dmg**, откройте и перетащите Trufi Cleaner в «Программы». Если macOS не даёт открыть приложение, см. [инструкцию](https://github.com/${REPO}#macos)."
+          } > release-notes.md
+
+      - name: Create draft release
+        id: draft
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ steps.stamp.outputs.version }}
+        with:
+          script: |
+            const fs = require("fs");
+            const version = process.env.VERSION;
+            const { data } = await github.rest.repos.createRelease({
+              ...context.repo,
+              tag_name: `v${version}`,
+              target_commitish: context.sha,
+              name: `Trufi Cleaner ${version}`,
+              body: fs.readFileSync("release-notes.md", "utf8"),
+              draft: true,
+            });
+            core.setOutput("id", String(data.id));
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            args: ""
+            targets: ""
+          - os: macos-latest
+            args: "--target universal-apple-darwin"
+            targets: "aarch64-apple-darwin,x86_64-apple-darwin"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
       - uses: Swatinem/rust-cache@v2
 
       - name: Install UI dependencies
@@ -49,22 +119,27 @@ jobs:
         run: cargo test -p trufi-core -p trufi-platform
 
       - name: Stamp version
-        id: stamp
         run: node scripts/stamp-release.mjs ${{ github.run_number }} ${{ github.repository }}
 
-      - name: Release notes
+      # Without these secrets the Mac app is signed ad hoc and users confirm
+      # the first launch in System Settings (see README). Only variables that
+      # have a value are set: an empty APPLE_CERTIFICATE breaks the build.
+      - name: Apple signing (optional)
+        if: runner.os == 'macOS'
         shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          {
-            echo "## Что нового"
-            echo
-            git log -1 --pretty=format:'%s%n%n%b' | sed '/^Co-Authored-By:/d;/^Claude-Session:/d'
-            echo
-            echo
-            echo "Установка: скачайте **Trufi.Cleaner_${{ steps.stamp.outputs.version }}_x64-setup.exe** и запустите. Права администратора не нужны."
-          } > release-notes.md
+          for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -n "${!v}" ]; then echo "$v=${!v}" >> "$GITHUB_ENV"; fi
+          done
 
-      - name: Build and publish
+      - name: Build and upload
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,9 +147,61 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           projectPath: apps/desktop
-          tagName: v__VERSION__
-          releaseName: Trufi Cleaner __VERSION__
-          releaseBodyPath: release-notes.md
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: true
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          args: ${{ matrix.args }}
+          # latest.json is written once, after both builds (see publish).
+          includeUpdaterJson: false
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write latest.json and publish
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          RELEASE_ID: ${{ needs.prepare.outputs.release_id }}
+        with:
+          script: |
+            const version = process.env.VERSION;
+            const release_id = Number(process.env.RELEASE_ID);
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, { ...context.repo, release_id });
+            const find = (re) => assets.find((a) => re.test(a.name));
+            const signature = async (asset) => {
+              const sig = assets.find((a) => a.name === `${asset.name}.sig`);
+              if (!sig) throw new Error(`no signature for ${asset.name}`);
+              const res = await github.request("GET /repos/{owner}/{repo}/releases/assets/{asset_id}", {
+                ...context.repo, asset_id: sig.id, headers: { accept: "application/octet-stream" },
+              });
+              return Buffer.from(res.data).toString("utf8").trim();
+            };
+            // Public URL the asset gets once the release is published.
+            const url = (asset) =>
+              `https://github.com/${context.repo.owner}/${context.repo.repo}/releases/download/v${version}/${encodeURIComponent(asset.name)}`;
+
+            const platforms = {};
+            const win = find(/_x64-setup\.exe$/);
+            if (!win) throw new Error("Windows installer is missing");
+            const winEntry = { signature: await signature(win), url: url(win) };
+            platforms["windows-x86_64"] = winEntry;
+            platforms["windows-x86_64-nsis"] = winEntry;
+            // One universal build serves both Apple Silicon and Intel Macs.
+            const mac = find(/\.app\.tar\.gz$/);
+            if (!mac) throw new Error("macOS update archive is missing");
+            const macEntry = { signature: await signature(mac), url: url(mac) };
+            for (const arch of ["darwin-aarch64", "darwin-x86_64"]) {
+              platforms[arch] = macEntry;
+              platforms[`${arch}-app`] = macEntry;
+            }
+
+            const { data: release } = await github.rest.repos.getRelease({ ...context.repo, release_id });
+            const latest = { version, notes: release.body ?? "", pub_date: new Date().toISOString(), platforms };
+            const old = assets.find((a) => a.name === "latest.json");
+            if (old) await github.rest.repos.deleteReleaseAsset({ ...context.repo, asset_id: old.id });
+            await github.rest.repos.uploadReleaseAsset({
+              ...context.repo, release_id, name: "latest.json",
+              data: JSON.stringify(latest, null, 2),
+              headers: { "content-type": "application/json" },
+            });
+            await github.rest.repos.updateRelease({ ...context.repo, release_id, draft: false, make_latest: "true" });
+            core.info(`Published v${version}: ${Object.keys(platforms).join(", ")}`);

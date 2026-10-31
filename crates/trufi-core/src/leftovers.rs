@@ -41,6 +41,13 @@ fn known_tokens(apps: &[InstalledApp]) -> HashSet<String> {
                 add(first);
             }
         }
+        if let Some(id) = &app.bundle_id {
+            add(id);
+            // com.vendor.app: the vendor names shared folders.
+            if let Some(vendor) = id.split('.').nth(1) {
+                add(vendor);
+            }
+        }
         if let Some(loc) = &app.install_location {
             for c in loc.components().rev().take(2) {
                 add(&c.as_os_str().to_string_lossy());
@@ -117,6 +124,7 @@ pub fn find(
     }
     let known = known_tokens(apps);
     let ignore: HashSet<String> = roots.ignore_names.iter().map(|s| normalize_name(s)).collect();
+    let ignore_prefix: Vec<String> = roots.ignore_prefixes.iter().map(|p| p.to_lowercase()).collect();
 
     let mut entries = Vec::new();
     let mut saves_at = HashSet::new();
@@ -129,7 +137,11 @@ pub fn find(
                 continue;
             }
             let name = child.file_name().to_string_lossy().into_owned();
-            if ignore.contains(&normalize_name(&name)) || !is_orphan(&name, &known, running) {
+            let lower = name.to_lowercase();
+            if ignore.contains(&normalize_name(&name))
+                || ignore_prefix.iter().any(|p| lower.starts_with(p.as_str()))
+                || !is_orphan(&name, &known, running)
+            {
                 continue;
             }
             let path = child.path();
@@ -190,6 +202,11 @@ mod tests {
             InstalledApp { name: "Google Chrome".into(), publisher: Some("Google LLC".into()), ..Default::default() },
             InstalledApp { name: "Telegram Desktop".into(), ..Default::default() },
             InstalledApp {
+                name: "Slack".into(),
+                bundle_id: Some("com.tinyspeck.slackmacgap".into()),
+                ..Default::default()
+            },
+            InstalledApp {
                 name: "Some Tool 2.1".into(),
                 install_location: Some("/opt/Vendorly/ToolX".into()),
                 ..Default::default()
@@ -207,6 +224,9 @@ mod tests {
         assert!(!is_orphan("discord", &known, &running));
         assert!(is_orphan("OldGameStudio", &known, &running));
         assert!(!is_orphan("ab", &known, &running));
+        // macOS containers are named after the bundle id.
+        assert!(!is_orphan("com.tinyspeck.slackmacgap", &known, &running));
+        assert!(is_orphan("com.oldvendor.gone", &known, &running));
     }
 
     #[test]

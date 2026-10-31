@@ -15,6 +15,8 @@ static PACKS: &[(&str, &str)] = packs![
     "windows/developer.toml",
     "macos/system.toml",
     "macos/browsers.toml",
+    "macos/apps.toml",
+    "macos/games.toml",
     "macos/developer.toml",
 ];
 

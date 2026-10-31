@@ -5,6 +5,7 @@
   import { api } from "../lib/api";
   import { bytes, count, plural } from "../lib/format";
   import { categoryName, categoryOrder, errorText, riskHint, riskName } from "../lib/i18n";
+  import { isMac } from "../lib/os";
   import { app } from "../lib/store.svelte";
   import type { Category, RuleFinding } from "../lib/types";
 
@@ -98,14 +99,14 @@
     else clean();
   }
 
-  const shortPath = (p: string) => p.replace(/^C:\\Users\\[^\\]+/i, "~");
+  const shortPath = (p: string) => p.replace(/^C:\\Users\\[^\\]+/i, "~").replace(/^\/Users\/[^/]+/, "~");
 </script>
 
 <div class="page">
   <div class="page-head">
     <div>
       <h1>Очистка</h1>
-      <p>Кеши, временные файлы, журналы и остатки программ на всех дисках</p>
+      <p>Кеши, временные файлы, журналы и остатки программ{isMac ? "" : " на всех дисках"}</p>
     </div>
     {#if app.scan && !app.scanning}
       <button class="btn btn-ghost" onclick={scan}><Icon name="refresh" size={16} /> Сканировать заново</button>
@@ -113,6 +114,14 @@
   </div>
 
   {#if error}<div class="error card"><Icon name="alert" size={16} /> {error}</div>{/if}
+
+  {#if isMac && app.info?.full_disk_access === false && !app.scanning && !app.cleaning}
+    <div class="fda card">
+      <Icon name="lock" size={16} />
+      <span>Без полного доступа к диску macOS не покажет Корзину, кеш Safari, вложения Почты и остатки программ из App Store.</span>
+      <button class="btn btn-ghost btn-small" onclick={() => api.openSystemPage("full_disk_access").catch(() => {})}>Разрешить</button>
+    </div>
+  {/if}
 
   {#if app.scanning}
     <section class="card state">
@@ -137,7 +146,7 @@
         Удалено {count(r.removed_files)} {plural(r.removed_files, "объект", "объекта", "объектов")}.
         {#if r.failed_files}
           {count(r.failed_files)} {plural(r.failed_files, "файл занят", "файла заняты", "файлов заняты")} программами или
-          требуют прав администратора, их пропустили.
+          {isMac ? "защищены macOS" : "требуют прав администратора"}, их пропустили.
         {/if}
       </p>
       <button class="btn btn-primary" onclick={scan}>Сканировать снова</button>
@@ -164,7 +173,7 @@
             checked={app.scanOptions.largeFiles}
             onchange={(e) => app.setScanOptions({ ...app.scanOptions, largeFiles: e.currentTarget.checked })}
           />
-          Показать крупные файлы на всех дисках
+          {isMac ? "Показать крупные файлы в домашней папке" : "Показать крупные файлы на всех дисках"}
         </label>
       </div>
       <button class="btn btn-primary" onclick={scan}>Сканировать</button>
@@ -286,6 +295,8 @@
 {/if}
 
 <style>
+  .fda { display: flex; gap: 10px; align-items: center; padding: 12px 18px; color: var(--text-2); }
+  .fda span { flex: 1; }
   .error { display: flex; gap: 8px; align-items: center; color: var(--bad); background: var(--bad-soft); border-color: transparent; padding: 12px 18px; }
 
   .state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 24px 44px; gap: 6px; }

@@ -1,0 +1,30 @@
+# macOS: game launchers.
+
+[pack]
+id = "macos.games"
+name = "Игры"
+os = "macos"
+version = 2
+
+[[rule]]
+id = "mac.game.steam.cache"
+name = "Steam: кеш и журналы"
+description = "Кеш встроенного браузера, журналы и дампы клиента Steam."
+category = "games"
+risk = "safe"
+paths = [
+  "~/Library/Application Support/Steam/appcache/httpcache",
+  "~/Library/Application Support/Steam/logs",
+  "~/Library/Application Support/Steam/dumps",
+  "~/Library/Application Support/Steam/steamapps/temp",
+]
+close_processes = ["steam_osx", "Steam Helper"]
+
+[[rule]]
+id = "mac.game.steam.shadercache"
+name = "Steam: кеш шейдеров"
+description = "Шейдеры игр Steam. Игра соберёт их заново при запуске."
+category = "games"
+risk = "moderate"
+paths = ["~/Library/Application Support/Steam/steamapps/shadercache"]
+close_processes = ["steam_osx"]

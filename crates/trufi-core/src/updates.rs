@@ -1,21 +1,26 @@
-//! Windows Update state: the installed version, whether it is still
-//! serviced, and what Windows Update has waiting. The platform layer fills
-//! [`UpdateStatus`]; this module only interprets it.
+//! OS update state: the installed version, whether it is still serviced,
+//! and what the update service (Windows Update, macOS Software Update) has
+//! waiting. The platform layer fills [`UpdateStatus`]; this module only
+//! interprets it.
 
-use crate::util::{days_from_civil, parse_date_days, today_days};
+use crate::util::{days_from_civil, format_days, parse_date_days, today_days};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct WindowsVersion {
-    /// "Windows 11" or "Windows 10", from the build number.
+pub struct OsVersion {
+    /// "Windows 11", "Windows 10", "macOS Sequoia".
     pub name: String,
-    /// Feature update, e.g. "24H2". Absent on very old builds.
+    /// Windows feature update ("24H2") or macOS version ("15.1.1").
     pub display_version: Option<String>,
+    /// Windows build number; 0 on macOS.
     pub build: u32,
-    /// Monthly patch level (the part after the dot in 26100.4351).
+    /// Windows monthly patch level (the part after the dot in 26100.4351).
     pub revision: u32,
-    /// "Professional", "Core", "Enterprise"...
+    /// Windows edition: "Professional", "Core", "Enterprise"... Empty on macOS.
     pub edition: String,
+    /// Build as the OS shows it when it is not a number ("24B91" on macOS).
+    #[serde(default)]
+    pub build_label: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -23,9 +28,11 @@ pub struct PendingUpdate {
     pub id: String,
     pub title: String,
     pub driver: bool,
-    /// Offered only on request ("optional updates" in Settings).
+    /// Offered only on request ("optional updates" in Settings; updates
+    /// macOS does not recommend).
     pub optional: bool,
-    /// Microsoft Defender definitions: installed silently, not worth a mention.
+    /// Microsoft Defender definitions, XProtect/MRT data on macOS: installed
+    /// silently, not worth a mention.
     pub definition: bool,
     /// MSRC rating: "Critical", "Important", "Moderate", "Low".
     pub severity: Option<String>,
@@ -51,7 +58,7 @@ impl PendingUpdate {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UpdateStatus {
-    pub version: Option<WindowsVersion>,
+    pub version: Option<OsVersion>,
     /// Last day of security updates for this version, "YYYY-MM-DD".
     pub servicing_ends: Option<String>,
     pub out_of_support: bool,
@@ -61,7 +68,7 @@ pub struct UpdateStatus {
     /// Date of the last successful install, "YYYY-MM-DD".
     pub last_install: Option<String>,
     pub days_since_install: Option<u32>,
-    /// Why the Windows Update search failed (offline, service disabled).
+    /// Why the update search failed (offline, service disabled).
     pub error: Option<String>,
     pub checked_at_ms: u64,
 }
@@ -132,33 +139,62 @@ fn servicing_end(build: u32, edition: &str) -> Option<i64> {
     Some(days_from_civil(y, m, d))
 }
 
-fn format_days(days: i64) -> String {
-    // Inverse of days_from_civil (Howard Hinnant's algorithm).
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(m <= 2);
-    format!("{y:04}-{m:02}-{d:02}")
+/// Oldest macOS major version that still gets security updates. Apple
+/// publishes no end dates; in practice it patches the current release and
+/// the two before it, and drops the oldest when a new one ships in the
+/// autumn. Bump this when that happens (macOS 26 Tahoe, autumn 2025, ended
+/// Ventura).
+pub const MACOS_OLDEST_SUPPORTED: u32 = 14;
+
+/// Marketing name for a macOS major version.
+pub fn macos_name(major: u32) -> &'static str {
+    match major {
+        11 => "macOS Big Sur",
+        12 => "macOS Monterey",
+        13 => "macOS Ventura",
+        14 => "macOS Sonoma",
+        15 => "macOS Sequoia",
+        26 => "macOS Tahoe",
+        _ => "macOS",
+    }
+}
+
+/// Whether a macOS major version no longer gets security updates. 10.x
+/// reports major 10.
+pub fn macos_out_of_support(major: u32) -> bool {
+    major > 0 && major < MACOS_OLDEST_SUPPORTED
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn version(build: u32, edition: &str) -> Option<WindowsVersion> {
-        Some(WindowsVersion { build, edition: edition.into(), ..Default::default() })
+    fn version(build: u32, edition: &str) -> Option<OsVersion> {
+        Some(OsVersion { build, edition: edition.into(), ..Default::default() })
     }
 
     #[test]
-    fn formats_dates_back() {
-        for (y, m, d) in [(1970, 1, 1), (2024, 2, 29), (2026, 10, 13), (2099, 12, 31)] {
-            assert_eq!(format_days(days_from_civil(y, m, d)), format!("{y:04}-{m:02}-{d:02}"));
-        }
+    fn macos_support_window() {
+        assert!(macos_out_of_support(10));
+        assert!(macos_out_of_support(13));
+        assert!(!macos_out_of_support(14));
+        assert!(!macos_out_of_support(26));
+        assert!(!macos_out_of_support(0));
+        assert_eq!(macos_name(15), "macOS Sequoia");
+    }
+
+    #[test]
+    fn macos_status_keeps_its_own_support_flag() {
+        // build 0: the Windows calendar must not override what the macOS
+        // layer decided.
+        let mut s = UpdateStatus {
+            version: Some(OsVersion { name: "macOS Ventura".into(), ..Default::default() }),
+            out_of_support: true,
+            ..Default::default()
+        };
+        s.finish();
+        assert!(s.out_of_support);
+        assert_eq!(s.servicing_ends, None);
     }
 
     #[test]
