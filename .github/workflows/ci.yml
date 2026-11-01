@@ -78,15 +78,9 @@ jobs:
         run: |
           cd "$RUNNER_TEMP"
           bash "$GITHUB_WORKSPACE/scripts/mac-signing-cert.sh" > /dev/null
-          # Same as the release: the build machine must trust the certificate
-          # for code signing, or Tauri does not find the identity.
-          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
-            -k /Library/Keychains/System.keychain trufi-signing/cert.pem
-          {
-            echo "APPLE_CERTIFICATE=$(cat trufi-signing/cert.p12.base64)"
-            echo "APPLE_CERTIFICATE_PASSWORD=$(cat trufi-signing/password.txt)"
-            echo "APPLE_SIGNING_IDENTITY=Trufi Cleaner Self-Signed"
-          } >> "$GITHUB_ENV"
+          # Same path as the release takes for a self-signed certificate.
+          bash "$GITHUB_WORKSPACE/scripts/ci-mac-keychain.sh" trufi-signing/cert.p12 "$(cat trufi-signing/password.txt)"
+          echo "APPLE_SIGNING_IDENTITY=Trufi Cleaner Self-Signed" >> "$GITHUB_ENV"
       - name: Bundle the app (debug, signed)
         working-directory: apps/desktop
         run: npx tauri build --debug --bundles app --ci --config '{"bundle":{"createUpdaterArtifacts":false}}'
