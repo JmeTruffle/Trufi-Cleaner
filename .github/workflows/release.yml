@@ -138,6 +138,15 @@ jobs:
           for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
             if [ -n "${!v}" ]; then echo "$v=${!v}" >> "$GITHUB_ENV"; fi
           done
+          # A self-signed certificate (scripts/mac-signing-cert.sh) is not
+          # trusted by default, and Tauri only signs with trusted identities.
+          # Trust it for code signing on this throwaway build machine.
+          if [ -n "$APPLE_CERTIFICATE" ] && [[ "$APPLE_SIGNING_IDENTITY" != "Developer ID"* ]]; then
+            echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+            /usr/bin/openssl pkcs12 -in "$RUNNER_TEMP/cert.p12" -nokeys -passin env:APPLE_CERTIFICATE_PASSWORD -out "$RUNNER_TEMP/cert.pem"
+            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/cert.pem"
+            rm -f "$RUNNER_TEMP/cert.p12"
+          fi
 
       - name: Build and upload
         uses: tauri-apps/tauri-action@v0
