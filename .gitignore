@@ -5,3 +5,7 @@ apps/desktop/src-tauri/target
 apps/desktop/src-tauri/gen
 *.log
 .DS_Store
+
+# scripts/mac-signing-cert.sh output: private key, never commit
+trufi-signing/
+trufi-mac-report.txt

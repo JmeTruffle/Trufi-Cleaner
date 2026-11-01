@@ -70,8 +70,26 @@ jobs:
         run: cargo test -p trufi-core -p trufi-platform
       - name: Clippy (macOS code paths)
         run: cargo clippy --workspace -- -D warnings
-      # Proves tauri.macos.conf.json, Info.plist and the entitlements bundle;
-      # releases build the signed universal version.
-      - name: Bundle the app (debug, unsigned)
+      # Proves tauri.macos.conf.json, Info.plist and the entitlements bundle,
+      # signed the way releases are when the self-signed certificate from
+      # scripts/mac-signing-cert.sh is set up (a throwaway one here).
+      - name: Throwaway signing certificate
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          bash "$GITHUB_WORKSPACE/scripts/mac-signing-cert.sh" > /dev/null
+          # Same path as the release takes for a self-signed certificate.
+          bash "$GITHUB_WORKSPACE/scripts/ci-mac-keychain.sh" trufi-signing/cert.p12 "$(cat trufi-signing/password.txt)"
+          echo "APPLE_SIGNING_IDENTITY=Trufi Cleaner Self-Signed" >> "$GITHUB_ENV"
+      - name: Bundle the app (debug, signed)
         working-directory: apps/desktop
-        run: npx tauri build --debug --bundles app --no-sign --ci --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: npx tauri build --debug --bundles app --ci --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      - name: Check the signature
+        shell: bash
+        run: |
+          app=$(find target/debug/bundle/macos -maxdepth 1 -name '*.app' | head -1)
+          info=$(codesign -dvv "$app" 2>&1)
+          echo "$info"
+          grep -q "Authority=Trufi Cleaner Self-Signed" <<< "$info"
+          codesign --verify --deep --strict "$app"
+          codesign -d -r- "$app"
