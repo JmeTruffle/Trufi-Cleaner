@@ -88,5 +88,8 @@ jobs:
         shell: bash
         run: |
           app=$(find target/debug/bundle/macos -maxdepth 1 -name '*.app' | head -1)
-          codesign -dvv "$app" 2>&1 | tee /dev/stderr | grep -q "Authority=Trufi Cleaner Self-Signed"
+          info=$(codesign -dvv "$app" 2>&1)
+          echo "$info"
+          grep -q "Authority=Trufi Cleaner Self-Signed" <<< "$info"
+          codesign --verify --deep --strict "$app"
           codesign -d -r- "$app"
