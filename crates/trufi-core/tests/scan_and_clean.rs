@@ -252,3 +252,62 @@ fn moves_to_trash_instead_of_deleting() {
     assert_eq!(*platform.trashed.lock().unwrap(), vec![only]);
     assert!(home.join("big/b.iso").exists());
 }
+
+#[test]
+fn file_changed_after_scan_is_skipped() {
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().to_path_buf();
+    // The logs rule has no minimum age, so only the scan-time check saves it.
+    let log = home.join("app/run.log");
+    write(&log, 50, 48);
+    write(&home.join("app/old.log"), 20, 48);
+
+    let mut rules = RuleSet::default();
+    rules.add_pack_str("test", PACK, "linux").unwrap();
+    let platform = FakePlatform { home: home.clone(), trashed: Default::default() };
+    let scanner = Scanner::new(&platform);
+    let result = scanner.scan(&rules.rules, ScanOptions::default(), &|_| {});
+
+    // The user keeps working with the file between review and clean.
+    write(&log, 80, 0);
+
+    let report = clean(
+        &result,
+        &[CleanRequest { rule_id: "logs".into(), paths: None, to_trash: false }],
+        &platform,
+        scanner.guard(),
+    );
+    assert!(log.exists(), "a file modified after the scan must survive");
+    assert!(!home.join("app/old.log").exists());
+    assert_eq!(report.removed_files, 1);
+    assert_eq!(report.skipped_files, 1);
+    assert_eq!(report.failed_files, 0);
+}
+
+#[test]
+fn large_file_in_home_folder_is_removed() {
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().to_path_buf();
+    let big = home.join("movie.mkv");
+    write(&big, 4096, 48);
+
+    let platform = FakePlatform { home: home.clone(), trashed: Default::default() };
+    let scanner = Scanner::new(&platform);
+    let found = trufi_core::large_files::find(std::slice::from_ref(&home), &[], 1024, scanner.guard())
+        .expect("a big file right in the home folder is listed");
+    let result = trufi_core::scanner::ScanResult { rules: vec![found], duration: Duration::ZERO };
+
+    let report = clean(
+        &result,
+        &[CleanRequest {
+            rule_id: trufi_core::large_files::RULE_ID.into(),
+            paths: Some(vec![big.clone()]),
+            to_trash: true,
+        }],
+        &platform,
+        scanner.guard(),
+    );
+    assert_eq!(report.removed_files, 1, "listed files must also be removable");
+    assert_eq!(report.skipped_files, 0);
+    assert!(!big.exists());
+}

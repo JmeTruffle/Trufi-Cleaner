@@ -148,6 +148,10 @@
           {count(r.failed_files)} {plural(r.failed_files, "файл занят", "файла заняты", "файлов заняты")} программами или
           {isMac ? "защищены macOS" : "требуют прав администратора"}, их пропустили.
         {/if}
+        {#if r.skipped_files}
+          {count(r.skipped_files)} {plural(r.skipped_files, "объект изменился", "объекта изменились", "объектов изменились")}
+          после сканирования или {plural(r.skipped_files, "уже удалён", "уже удалены", "уже удалены")}, их не тронули.
+        {/if}
       </p>
       <button class="btn btn-primary" onclick={scan}>Сканировать снова</button>
     </section>

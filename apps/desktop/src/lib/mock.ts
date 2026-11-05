@@ -390,7 +390,7 @@ export const mock = {
       const x = findings.find((y) => y.rule_id === r.rule_id)!;
       const freed = r.paths ? x.top_entries.filter((e) => r.paths!.includes(e.path)).reduce((s, e) => s + e.bytes, 0) : x.bytes;
       const locked = x.running_processes.length ? Math.round(x.files * 0.1) : 0;
-      return { rule_id: r.rule_id, freed_bytes: freed * (locked ? 0.9 : 1), removed_files: x.files - locked, failed_files: locked, errors: [] };
+      return { rule_id: r.rule_id, freed_bytes: freed * (locked ? 0.9 : 1), removed_files: x.files - locked, failed_files: locked, skipped_files: 0, errors: [] };
     });
     scanned = null;
     return {

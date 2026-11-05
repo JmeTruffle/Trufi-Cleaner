@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 use walkdir::WalkDir;
 
 const TOP_ENTRIES: usize = 6;
@@ -28,6 +28,9 @@ pub struct Entry {
     pub bytes: u64,
     /// Delete as a whole directory tree (used for leftovers).
     pub tree: bool,
+    /// Modification time seen by the scan. A file whose time differs at
+    /// clean time was changed after the user reviewed it and is skipped.
+    pub modified: Option<SystemTime>,
 }
 
 #[derive(Debug, Clone)]
@@ -336,6 +339,7 @@ impl<'a> Scanner<'a> {
                 root: root.to_path_buf(),
                 bytes: meta.len(),
                 tree: false,
+                modified: meta.modified().ok(),
             });
         }
     }
@@ -353,7 +357,7 @@ impl<'a> Scanner<'a> {
                 continue;
             }
             let Some(bytes) = tree_size(&dir) else { continue };
-            out.push(Entry { path: dir, root: root.to_path_buf(), bytes, tree: true });
+            out.push(Entry { path: dir, root: root.to_path_buf(), bytes, tree: true, modified: None });
         }
     }
 

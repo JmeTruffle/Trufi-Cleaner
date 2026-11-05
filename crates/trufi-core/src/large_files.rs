@@ -34,13 +34,21 @@ pub fn find(roots: &[PathBuf], skip: &[PathBuf], min_bytes: u64, guard: &SafetyG
                 continue;
             }
             let path = e.path().to_path_buf();
-            let parent = path.parent().map(PathBuf::from).unwrap_or_default();
-            // The file's own folder is the root for the guard: a drive root
-            // itself never passes `allows_root`.
-            if !guard.allows_entry(&path, &parent) || parent.components().count() < 2 {
+            // The file is its own root, like a leftover folder. Its parent
+            // would not do: a file right in the home folder (or %APPDATA%)
+            // would be listed, yet the cleaner refuses the home folder as a
+            // root and would silently skip it. A file directly on a drive
+            // root is still refused (too shallow).
+            if !guard.allows_root(&path) || !guard.allows_entry(&path, &path) {
                 continue;
             }
-            entries.push(Entry { root: parent, path, bytes: meta.len(), tree: false });
+            entries.push(Entry {
+                root: path.clone(),
+                path,
+                bytes: meta.len(),
+                tree: false,
+                modified: meta.modified().ok(),
+            });
         }
     }
     if entries.is_empty() {
