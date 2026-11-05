@@ -20,7 +20,10 @@ fn key(path: &Path) -> String {
     while s.len() > 1 && s.ends_with('/') {
         s.pop();
     }
-    if cfg!(windows) {
+    // NTFS and (by default) APFS ignore case: "~/documents" is the same
+    // folder as "~/Documents", so a protected path must match either way.
+    // Lowercasing on a case-sensitive volume only makes the guard stricter.
+    if cfg!(any(windows, target_os = "macos")) {
         s.to_lowercase()
     } else {
         s

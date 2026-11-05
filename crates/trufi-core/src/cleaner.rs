@@ -1,6 +1,7 @@
 //! Deletes what a scan found. Every entry is re-validated right before it
 //! is removed: the safety guard runs again, links are never followed, and
-//! files that changed since the scan (became young again) are skipped.
+//! files that changed since the scan (modified, or became young again) are
+//! skipped and counted as such.
 
 use crate::model::{CleanReport, RuleCleanResult};
 use crate::platform::Platform;
@@ -44,7 +45,7 @@ pub fn clean(
         freed_bytes: per_rule.iter().map(|r| r.freed_bytes).sum(),
         removed_files: per_rule.iter().map(|r| r.removed_files).sum(),
         failed_files: per_rule.iter().map(|r| r.failed_files).sum(),
-        skipped_files: 0,
+        skipped_files: per_rule.iter().map(|r| r.skipped_files).sum(),
         per_rule,
         duration_ms: started.elapsed().as_millis() as u64,
     }
@@ -89,12 +90,13 @@ fn clean_rule(
 
     if req.to_trash {
         // Same checks as deleting, then one call: the OS trash is slow per item.
-        let batch: Vec<&Entry> = rs
-            .entries
+        let candidates: Vec<&Entry> = rs.entries.iter().filter(|e| wanted(e, req.paths.as_deref())).collect();
+        let batch: Vec<&Entry> = candidates
             .iter()
-            .filter(|e| wanted(e, req.paths.as_deref()))
+            .copied()
             .filter(|e| still_removable(e, guard, min_age).unwrap_or(false))
             .collect();
+        result.skipped_files = (candidates.len() - batch.len()) as u64;
         if batch.is_empty() {
             return result;
         }
@@ -123,7 +125,7 @@ fn clean_rule(
                     }
                 }
             }
-            Ok(false) => {}
+            Ok(false) => result.skipped_files += 1,
             Err(e) => {
                 result.failed_files += 1;
                 if result.errors.len() < MAX_ERRORS_PER_RULE {
@@ -170,6 +172,9 @@ fn check_entry(entry: &Entry, guard: &SafetyGuard, min_age: Duration) -> io::Res
         return Ok(meta.is_dir().then_some(meta));
     }
     if !meta.is_file() {
+        return Ok(None);
+    }
+    if entry.modified.is_some() && meta.modified().ok() != entry.modified {
         return Ok(None);
     }
     if !min_age.is_zero() && meta.modified().map(|m| age_of(m) < min_age).unwrap_or(true) {

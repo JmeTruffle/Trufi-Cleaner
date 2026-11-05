@@ -158,7 +158,7 @@ pub fn find(
             if saves {
                 saves_at.insert(path.clone());
             }
-            entries.push(Entry { root: path.clone(), path, bytes, tree: true });
+            entries.push(Entry { root: path.clone(), path, bytes, tree: true, modified: None });
         }
     }
     if entries.is_empty() {

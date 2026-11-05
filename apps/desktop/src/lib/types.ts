@@ -39,6 +39,7 @@ export interface RuleCleanResult {
   freed_bytes: number;
   removed_files: number;
   failed_files: number;
+  skipped_files: number;
   errors: string[];
 }
 

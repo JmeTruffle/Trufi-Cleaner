@@ -94,6 +94,8 @@ pub struct RuleCleanResult {
     pub freed_bytes: u64,
     pub removed_files: u64,
     pub failed_files: u64,
+    /// Left alone on purpose: gone, changed since the scan, or now unsafe.
+    pub skipped_files: u64,
     /// A handful of error messages for diagnostics.
     pub errors: Vec<String>,
 }
