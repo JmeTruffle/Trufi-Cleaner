@@ -14,6 +14,10 @@
   let query = $state("");
   let message = $state("");
   let uninstalling = $state<InstalledApp | null>(null);
+  /** Startup entries whose program is gone, waiting for confirmation to remove. */
+  let removing = $state<StartupItem[] | null>(null);
+  let removingBusy = $state(false);
+  let broken = $derived(startup?.filter((s) => !s.target_exists) ?? []);
 
   let enabledCount = $derived(startup?.filter((s) => s.enabled).length ?? 0);
   let filteredApps = $derived(
@@ -59,6 +63,28 @@
     }
   }
 
+  async function removeEntries(items: StartupItem[]) {
+    removingBusy = true;
+    message = "";
+    let done = 0;
+    const failed: string[] = [];
+    // One by one: on a Mac each system entry may ask for the password.
+    for (const item of items) {
+      try {
+        await api.removeStartupItem(item.id);
+        done++;
+      } catch (e) {
+        failed.push(`${item.name}: ${errorText(e)}`);
+      }
+    }
+    removingBusy = false;
+    removing = null;
+    await loadStartup();
+    app.refreshHealth();
+    const where = isMac ? "Файлы записей перемещены в Корзину." : "Копия записей сохранена, ярлыки перемещены в Корзину.";
+    message = [done ? `Убрано записей: ${done}. ${where}` : "", ...failed].filter(Boolean).join(" ");
+  }
+
   async function uninstall(a: InstalledApp) {
     uninstalling = null;
     try {
@@ -101,7 +127,11 @@
         <div>
           <b>{enabledCount}</b> <span class="muted">из {startup?.length ?? 0} запускаются вместе с системой</span>
         </div>
-        {#if isMac}
+        {#if broken.length}
+          <button class="btn btn-ghost btn-small" onclick={() => (removing = broken)}>
+            <Icon name="trash" size={14} /> Убрать неработающие ({broken.length})
+          </button>
+        {:else if isMac}
           <span class="faint small">Отключение обратимо и сработает при следующем входе в систему</span>
         {:else}
           <span class="faint small">Отключение обратимо и работает так же, как в Диспетчере задач</span>
@@ -119,7 +149,7 @@
           <div class="row-main">
             <div class="row-title">
               {item.name}
-              {#if !item.target_exists}<span class="badge badge-expert" title="Программа, которую запускает запись, не найдена">Файл не найден</span>{/if}
+              {#if !item.target_exists}<span class="badge badge-expert" title="Программа, которую запускает запись, удалена или перемещена. Запись можно убрать.">Программа удалена</span>{/if}
               {#if item.scope === "all_users"}<span class="badge badge-muted">Все пользователи</span>{/if}
               {#if item.source === "folder"}<span class="badge badge-muted">Папка автозагрузки</span>{/if}
               {#if item.source === "login_item"}<span class="badge badge-muted" title="Открывается при входе в систему">Объект входа</span>{/if}
@@ -130,14 +160,19 @@
           {#if item.requires_admin && !app.info?.is_elevated}
             <span class="faint" title={adminHint}><Icon name="shield" size={15} /></span>
           {/if}
-          <input
-            type="checkbox"
-            class="switch"
-            checked={item.enabled}
-            disabled={locked(item)}
-            onchange={() => toggle(item)}
-            aria-label={item.name}
-          />
+          {#if !item.target_exists}
+            <!-- Nothing to start: switching it makes no sense, removing does. -->
+            <button class="btn btn-ghost btn-small" onclick={() => (removing = [item])}>Убрать</button>
+          {:else}
+            <input
+              type="checkbox"
+              class="switch"
+              checked={item.enabled}
+              disabled={locked(item)}
+              onchange={() => toggle(item)}
+              aria-label={item.name}
+            />
+          {/if}
         </div>
       {:else}
         <div class="empty faint">{startup ? "Автозагрузка пуста" : "Загружаем…"}</div>
@@ -199,6 +234,32 @@
   {/if}
 </div>
 
+{#if removing}
+  {@const list = removing}
+  <Modal
+    title={list.length === 1 ? `Убрать «${list[0].name}» из автозагрузки?` : `Убрать ${list.length} неработающих записей?`}
+    onclose={() => !removingBusy && (removing = null)}
+  >
+    <p>Программы, которые запускают эти записи, уже удалены. Записи только мешают и больше ничего не делают.</p>
+    {#if list.length > 1}
+      <ul class="remove-list">{#each list as it}<li>{it.name}</li>{/each}</ul>
+    {/if}
+    <p class="faint">
+      {#if isMac}
+        Файлы записей уйдут в Корзину, их можно будет вернуть. Для системных записей macOS спросит пароль администратора.
+      {:else}
+        Записи реестра сохранятся в резервную копию, ярлыки уйдут в Корзину. Для записей «Все пользователи» нужны права администратора.
+      {/if}
+    </p>
+    {#snippet actions()}
+      <button class="btn btn-ghost" disabled={removingBusy} onclick={() => (removing = null)}>Отмена</button>
+      <button class="btn btn-danger" disabled={removingBusy} onclick={() => removeEntries(list)}>
+        {removingBusy ? "Убираем…" : "Убрать"}
+      </button>
+    {/snippet}
+  </Modal>
+{/if}
+
 {#if uninstalling}
   {@const a = uninstalling}
   <Modal title="Удалить {a.name}?" onclose={() => (uninstalling = null)}>
@@ -225,6 +286,7 @@
   .row-title { display: flex; gap: 8px; align-items: center; font-weight: 650; font-size: 15px; }
   .cmd { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
   .empty { padding: 32px; text-align: center; }
+  .remove-list { margin: 0 0 10px; padding-left: 20px; columns: 2; }
   .mac-note { padding: 12px 22px; border-bottom: 1px solid var(--divider); line-height: 1.5; }
   .link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; font-weight: 600; }
   .search { display: flex; align-items: center; gap: 8px; color: var(--text-2); flex: 1; max-width: 380px; height: 40px; padding: 0 16px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }

@@ -406,6 +406,11 @@ export const mock = {
     if (s?.requires_admin && !isMac) throw { code: "elevation_required", message: "" };
     if (s) s.enabled = a.enabled;
   },
+  async remove_startup_item(a: { id: string }) {
+    await wait(300);
+    const i = startup.findIndex((x) => x.id === a.id);
+    if (i >= 0) startup.splice(i, 1);
+  },
   async installed_apps() { return apps; },
   async uninstall_app() {
     return isMac ? ("moved_to_trash" as const) : ("uninstaller_started" as const);

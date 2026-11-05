@@ -145,6 +145,21 @@ pub fn set_enabled(id: &str, enabled: bool, data_dir: &Path) -> Result<()> {
     save_disabled(data_dir, &disabled)
 }
 
+/// Removes the login item for good (and forgets it if it was turned off).
+pub fn remove(id: &str, data_dir: &Path) -> Result<()> {
+    let path = id.strip_prefix(ID_PREFIX).ok_or_else(|| Error::Platform(format!("Неизвестная запись: {id}")))?;
+    if system_events_list()?.iter().any(|l| l.path == path) {
+        cmd::osascript(
+            &[r#"tell application "System Events" to delete (every login item whose path is (item 1 of argv))"#],
+            &[path],
+            TIMEOUT,
+        )?;
+    }
+    let mut disabled = load_disabled(data_dir);
+    disabled.retain(|l| l.path != path);
+    save_disabled(data_dir, &disabled)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

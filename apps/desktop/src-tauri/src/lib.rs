@@ -31,6 +31,7 @@ pub fn run() {
             commands::clean,
             commands::startup_items,
             commands::set_startup_enabled,
+            commands::remove_startup_item,
             commands::installed_apps,
             commands::uninstall_app,
             commands::relaunch_elevated,
