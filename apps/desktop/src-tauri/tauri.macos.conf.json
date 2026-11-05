@@ -16,7 +16,7 @@
         "acceptFirstMouse": true,
         "trafficLightPosition": {
           "x": 18,
-          "y": 13
+          "y": 21
         },
         "transparent": false,
         "shadow": true,

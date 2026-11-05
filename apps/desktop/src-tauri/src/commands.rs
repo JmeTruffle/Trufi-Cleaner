@@ -295,6 +295,16 @@ pub async fn set_startup_enabled(app: AppHandle, id: String, enabled: bool) -> C
 }
 
 #[tauri::command]
+pub async fn remove_startup_item(app: AppHandle, id: String) -> CmdResult<()> {
+    blocking(&app, move |state| {
+        state.platform.remove_startup_item(&id)?;
+        *state.startup_enabled.lock().unwrap() = None;
+        Ok(())
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn installed_apps(app: AppHandle) -> CmdResult<Vec<InstalledApp>> {
     blocking(&app, |state| Ok(state.platform.installed_apps()?)).await
 }

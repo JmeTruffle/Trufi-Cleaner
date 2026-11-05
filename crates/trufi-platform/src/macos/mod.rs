@@ -246,6 +246,14 @@ impl Platform for MacPlatform {
         }
     }
 
+    fn remove_startup_item(&self, id: &str) -> Result<()> {
+        if id.starts_with(login_items::ID_PREFIX) {
+            login_items::remove(id, &self.data_dir())
+        } else {
+            launchd::remove(id, &self.home)
+        }
+    }
+
     fn special_info(&self, special: Special) -> Result<Option<(u64, u64)>> {
         Ok(match special {
             Special::Trash => dir_size(&self.trash_dir()),

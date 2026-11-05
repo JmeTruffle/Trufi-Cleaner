@@ -117,6 +117,89 @@ pub fn list(vars: &HashMap<String, PathBuf>) -> Vec<StartupItem> {
     items
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Removed {
+    source: String,
+    name: String,
+    command: String,
+    removed_at: u64,
+}
+
+/// Registry entries we removed, kept so they can be restored by hand
+/// (`%LOCALAPPDATA%\app.trufi.cleaner\removed-startup.json`).
+fn backup(vars: &HashMap<String, PathBuf>, entry: Removed) -> Result<()> {
+    let Some(dir) = vars.get("LOCALAPPDATA").map(|d| d.join("app.trufi.cleaner")) else { return Ok(()) };
+    std::fs::create_dir_all(&dir)?;
+    let file = dir.join("removed-startup.json");
+    let mut list: Vec<Removed> = std::fs::read(&file)
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default();
+    list.push(entry);
+    let json = serde_json::to_vec_pretty(&list).map_err(|e| Error::Platform(e.to_string()))?;
+    std::fs::write(file, json)?;
+    Ok(())
+}
+
+fn denied(e: io::Error) -> Error {
+    if e.kind() == io::ErrorKind::PermissionDenied {
+        Error::ElevationRequired
+    } else {
+        e.into()
+    }
+}
+
+/// Removes a startup entry: a registry value (backed up first) or a
+/// shortcut in a startup folder (to the Recycle Bin). Its Task Manager
+/// on/off flag goes too.
+pub fn remove(id: &str, vars: &HashMap<String, PathBuf>) -> Result<()> {
+    let (source_id, name) = id
+        .split_once('|')
+        .ok_or_else(|| Error::Platform(format!("bad startup id {id}")))?;
+    let source = SOURCES
+        .iter()
+        .find(|s| s.id == source_id)
+        .ok_or_else(|| Error::Platform(format!("bad startup source {source_id}")))?;
+    match source.run_key {
+        Some(key) => {
+            let k = hive(source.hklm)
+                .open_subkey_with_flags(key, KEY_READ | KEY_SET_VALUE)
+                .map_err(denied)?;
+            let command: String = k.get_value(name).unwrap_or_default();
+            backup(
+                vars,
+                Removed {
+                    source: source_id.to_string(),
+                    name: name.to_string(),
+                    command,
+                    removed_at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0),
+                },
+            )?;
+            match k.delete_value(name) {
+                Ok(()) => {}
+                Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+                Err(e) => return Err(denied(e)),
+            }
+        }
+        None => {
+            let dir = folder(source, vars).ok_or_else(|| Error::Platform("startup folder not found".into()))?;
+            let file = dir.join(name);
+            if name.contains(['\\', '/']) || !file.starts_with(&dir) {
+                return Err(Error::Platform(format!("bad startup id {id}")));
+            }
+            if file.exists() {
+                crate::move_to_trash(std::slice::from_ref(&file))?;
+            }
+        }
+    }
+    if let Ok(k) = hive(source.hklm)
+        .open_subkey_with_flags(format!(r"{APPROVED}\{}", source.approved), KEY_SET_VALUE)
+    {
+        let _ = k.delete_value(name);
+    }
+    Ok(())
+}
+
 fn filetime_now() -> [u8; 8] {
     // 100ns intervals since 1601-01-01.
     let since_unix = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();

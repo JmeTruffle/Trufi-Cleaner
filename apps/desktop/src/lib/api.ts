@@ -20,6 +20,7 @@ type Commands = {
   clean: [{ requests: CleanRequest[] }, CleanReport];
   startup_items: [undefined, StartupItem[]];
   set_startup_enabled: [{ id: string; enabled: boolean }, void];
+  remove_startup_item: [{ id: string }, void];
   installed_apps: [undefined, InstalledApp[]];
   uninstall_app: [{ id: string }, UninstallOutcome];
   relaunch_elevated: [undefined, void];
@@ -47,6 +48,7 @@ export const api = {
   clean: (requests: CleanRequest[]) => call("clean", { requests }),
   startupItems: () => call("startup_items"),
   setStartupEnabled: (id: string, enabled: boolean) => call("set_startup_enabled", { id, enabled }),
+  removeStartupItem: (id: string) => call("remove_startup_item", { id }),
   installedApps: () => call("installed_apps"),
   uninstallApp: (id: string) => call("uninstall_app", { id }),
   relaunchElevated: () => call("relaunch_elevated"),

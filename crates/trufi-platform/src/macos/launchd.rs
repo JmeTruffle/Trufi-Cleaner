@@ -145,7 +145,8 @@ pub fn list(home: &Path) -> Vec<StartupItem> {
                 .map(|p| !p.starts_with('/') || Path::new(p).exists())
                 .unwrap_or(true);
             items.push(StartupItem {
-                id: format!("{}|{}", domain.as_str(), job.label),
+                // The plist path rides along so the entry can be removed.
+                id: format!("{}|{}|{}", domain.as_str(), job.label, path.display()),
                 name: display_name(&job.label, &job.args),
                 command: if job.args.is_empty() { job.label.clone() } else { job.args.join(" ") },
                 source: if domain == Domain::System { "launch_daemon" } else { "launch_agent" }.into(),
@@ -160,11 +161,21 @@ pub fn list(home: &Path) -> Vec<StartupItem> {
     items
 }
 
-pub fn set_enabled(id: &str, enabled: bool, home: &Path) -> Result<()> {
-    let (domain, label) = id.split_once('|').ok_or_else(|| Error::Platform(format!("Неизвестная запись автозагрузки: {id}")))?;
+/// Splits `domain|label|plist` (the plist part is optional for ids made
+/// by older versions).
+fn parse_id(id: &str) -> Result<(&str, &str, Option<&str>)> {
+    let bad = || Error::Platform(format!("Неизвестная запись автозагрузки: {id}"));
+    let mut it = id.splitn(3, '|');
+    let domain = it.next().ok_or_else(bad)?;
+    let label = it.next().ok_or_else(bad)?;
     if !valid_label(label) {
-        return Err(Error::Platform(format!("Неизвестная запись автозагрузки: {id}")));
+        return Err(bad());
     }
+    Ok((domain, label, it.next()))
+}
+
+pub fn set_enabled(id: &str, enabled: bool, home: &Path) -> Result<()> {
+    let (domain, label, _) = parse_id(id)?;
     let action = if enabled { "enable" } else { "disable" };
     match domain {
         "gui" => {
@@ -184,9 +195,83 @@ pub fn set_enabled(id: &str, enabled: bool, home: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The plist an id points at, if it is really one of ours to remove: in a
+/// launchd folder, a .plist, and declaring that very label.
+pub fn plist_for_removal(id: &str, home: &Path) -> Result<(Domain, String, PathBuf)> {
+    let (domain, label, plist) = parse_id(id)?;
+    let bad = || Error::Platform(format!("Неизвестная запись автозагрузки: {id}"));
+    let path = PathBuf::from(plist.ok_or_else(bad)?);
+    let domain = match domain {
+        "gui" => Domain::Gui,
+        "system" => Domain::System,
+        _ => return Err(bad()),
+    };
+    let in_source = sources(home)
+        .iter()
+        .any(|(dir, d, _)| *d == domain && path.parent() == Some(dir.as_path()));
+    if !in_source || path.extension().is_none_or(|x| x != "plist") {
+        return Err(bad());
+    }
+    let job = Value::from_file(&path).ok().as_ref().and_then(parse_job).ok_or_else(bad)?;
+    if job.label != label {
+        return Err(bad());
+    }
+    Ok((domain, label.to_string(), path))
+}
+
+/// Stops the job and moves its plist to the Trash, so it can be put back.
+/// Plists outside the home folder belong to root: macOS asks for the
+/// administrator password.
+pub fn remove(id: &str, home: &Path) -> Result<()> {
+    let (domain, label, path) = plist_for_removal(id, home)?;
+    let uid = uid(home).ok_or_else(|| Error::Platform("Не удалось определить пользователя.".into()))?;
+    let target = match domain {
+        Domain::Gui => format!("gui/{uid}/{label}"),
+        Domain::System => format!("system/{label}"),
+    };
+    if path.starts_with(home) {
+        // Not loaded (its program is gone) is fine.
+        let _ = cmd::run("/bin/launchctl", &["bootout", &target], TIMEOUT);
+        return crate::move_to_trash(std::slice::from_ref(&path));
+    }
+    if domain == Domain::Gui {
+        let _ = cmd::run("/bin/launchctl", &["bootout", &target], TIMEOUT);
+    }
+    let trash = home.join(".Trash");
+    cmd::osascript(
+        &[r#"do shell script "/bin/launchctl bootout " & quoted form of (item 1 of argv) & " 2>/dev/null; /bin/mv -f " & quoted form of (item 2 of argv) & " " & quoted form of (item 3 of argv) with administrator privileges"#],
+        &[&target, &path.to_string_lossy(), &trash.to_string_lossy()],
+        Duration::from_secs(300),
+    )
+    .map(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn removal_only_touches_real_launchd_plists() {
+        let home = tempfile::tempdir().unwrap();
+        let agents = home.path().join("Library/LaunchAgents");
+        std::fs::create_dir_all(&agents).unwrap();
+        let plist = agents.join("com.gone.helper.plist");
+        std::fs::write(
+            &plist,
+            r#"<plist version="1.0"><dict><key>Label</key><string>com.gone.helper</string><key>Program</key><string>/Applications/Gone.app/Contents/MacOS/Gone</string></dict></plist>"#,
+        )
+        .unwrap();
+        let id = format!("gui|com.gone.helper|{}", plist.display());
+        let (domain, label, path) = plist_for_removal(&id, home.path()).unwrap();
+        assert_eq!((domain, label.as_str(), path), (Domain::Gui, "com.gone.helper", plist.clone()));
+        // Wrong label, wrong folder, wrong domain, old id without a path.
+        assert!(plist_for_removal(&format!("gui|com.other|{}", plist.display()), home.path()).is_err());
+        assert!(plist_for_removal("gui|com.gone.helper|/etc/hosts", home.path()).is_err());
+        assert!(plist_for_removal(&format!("system|com.gone.helper|{}", plist.display()), home.path()).is_err());
+        assert!(plist_for_removal("gui|com.gone.helper", home.path()).is_err());
+        // set_enabled still understands both id forms.
+        assert!(parse_id(&id).is_ok() && parse_id("gui|com.x").is_ok());
+    }
 
     #[test]
     fn parses_jobs() {

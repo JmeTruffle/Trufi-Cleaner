@@ -119,6 +119,12 @@ pub trait Platform: Send + Sync {
 
     fn set_startup_enabled(&self, id: &str, enabled: bool) -> Result<()>;
 
+    /// Removes a startup entry for good, typically one whose program is
+    /// gone. Platforms keep it recoverable (Trash, a backup of the value).
+    fn remove_startup_item(&self, _id: &str) -> Result<()> {
+        Err(crate::Error::Unsupported("remove_startup_item"))
+    }
+
     /// Enabled startup items, for the health score. Must not ask the user
     /// anything (macOS: no Automation prompt at app start).
     fn startup_enabled_count(&self) -> Result<usize> {

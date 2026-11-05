@@ -219,6 +219,10 @@ impl Platform for WindowsPlatform {
         startup::set_enabled(id, enabled)
     }
 
+    fn remove_startup_item(&self, id: &str) -> Result<()> {
+        startup::remove(id, &self.vars)
+    }
+
     fn trash_info(&self) -> Result<Option<(u64, u64)>> {
         shell::recycle_bin_info().map(Some)
     }
